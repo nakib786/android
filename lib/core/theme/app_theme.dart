@@ -19,7 +19,7 @@ class AppTheme {
       textTheme: GoogleFonts.plusJakartaSansTextTheme(ThemeData.light().textTheme).copyWith(
         titleLarge: GoogleFonts.poppins(color: AppColours.charcoal, fontWeight: FontWeight.bold),
         bodyLarge: GoogleFonts.plusJakartaSans(color: AppColours.charcoal),
-        bodyMedium: GoogleFonts.plusJakartaSans(color: AppColours.charcoal.withOpacity(0.8)),
+        bodyMedium: GoogleFonts.plusJakartaSans(color: AppColours.charcoal.withValues(alpha: 0.8)),
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColours.canadianRed,

@@ -3,7 +3,6 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:gap/gap.dart';
 import 'package:intl/intl.dart';
-import 'package:isar/isar.dart';
 import '../../core/theme/app_colours.dart';
 import '../../main.dart';
 import '../../shared/models/trip.dart';
@@ -170,7 +169,7 @@ class _EditTripScreenState extends State<EditTripScreen> {
                 color: theme.colorScheme.surface,
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, -5)),
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, -5)),
                 ],
               ),
               child: SingleChildScrollView(
@@ -195,7 +194,7 @@ class _EditTripScreenState extends State<EditTripScreen> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           decoration: BoxDecoration(
-                            color: AppColours.successGreen.withOpacity(0.1),
+                            color: AppColours.successGreen.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: Text(
@@ -212,8 +211,8 @@ class _EditTripScreenState extends State<EditTripScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
                         _buildQuickStat(context, Icons.straighten_rounded, "${widget.trip.distanceKm.toStringAsFixed(1)} km", "Distance"),
-                        _buildQuickStat(context, Icons.access_time_rounded, "${widget.trip.startTime != null ? timeFormat.format(widget.trip.startTime!) : '--'}", "Start"),
-                        _buildQuickStat(context, Icons.flag_rounded, "${widget.trip.endTime != null ? timeFormat.format(widget.trip.endTime!) : '--'}", "End"),
+                        _buildQuickStat(context, Icons.access_time_rounded, widget.trip.startTime != null ? timeFormat.format(widget.trip.startTime!) : '--', "Start"),
+                        _buildQuickStat(context, Icons.flag_rounded, widget.trip.endTime != null ? timeFormat.format(widget.trip.endTime!) : '--', "End"),
                       ],
                     ),
                     
@@ -229,7 +228,7 @@ class _EditTripScreenState extends State<EditTripScreen> {
                       decoration: InputDecoration(
                         hintText: "Enter trip purpose (e.g. Client Meeting)",
                         filled: true,
-                        fillColor: isDark ? Colors.white.withOpacity(0.05) : AppColours.lightGrey,
+                        fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : AppColours.lightGrey,
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                         prefixIcon: const Icon(Icons.edit_rounded, color: AppColours.canadianRed),
                       ),
@@ -239,12 +238,12 @@ class _EditTripScreenState extends State<EditTripScreen> {
                     Text("CATEGORY", style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 1)),
                     const Gap(12),
                     DropdownButtonFormField<String>(
-                      value: _category,
+                      initialValue: _category,
                       dropdownColor: theme.colorScheme.surface,
                       style: GoogleFonts.inter(fontSize: 16, color: isDark ? Colors.white : AppColours.charcoal),
                       decoration: InputDecoration(
                         filled: true,
-                        fillColor: isDark ? Colors.white.withOpacity(0.05) : AppColours.lightGrey,
+                        fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : AppColours.lightGrey,
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                         prefixIcon: const Icon(Icons.category_rounded, color: AppColours.canadianRed),
                       ),

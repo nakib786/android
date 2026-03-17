@@ -1,6 +1,6 @@
 {
-    "name": "kilodrive",
-    "short_name": "kilodrive",
+    "name": "aurora",
+    "short_name": "aurora",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

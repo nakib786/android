@@ -30,10 +30,9 @@ class GoogleMapsService {
     String waypoints = "";
 
     if (addresses.length > 2) {
-      waypoints = "&waypoints=" + 
-          addresses.sublist(1, addresses.length - 1)
+      waypoints = "&waypoints=${addresses.sublist(1, addresses.length - 1)
           .map((e) => Uri.encodeComponent(e))
-          .join('|');
+          .join('|')}";
     }
 
     final String url =

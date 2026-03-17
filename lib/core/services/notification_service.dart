@@ -29,7 +29,7 @@ class NotificationService {
     bool ongoing = false,
   }) async {
     final AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-      'kilodrive_trip_channel',
+      'aurora_trip_channel',
       'Trip Tracking',
       channelDescription: 'Notifications for ongoing trip tracking',
       importance: Importance.low,

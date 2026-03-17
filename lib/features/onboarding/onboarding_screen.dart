@@ -64,7 +64,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ),
           const SizedBox(height: 40),
           const Text(
-            "Welcome to KiloDrive",
+            "Welcome to Aurora",
             style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
             textAlign: TextAlign.center,
           ),

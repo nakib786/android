@@ -1,6 +1,6 @@
-# KiloDrive — CRA Mileage Tracker 🍁
+# Aurora — CRA Mileage Tracker 🍁
 
-**KiloDrive** is a premium, production-ready mileage tracker app built with Flutter. It's specifically designed for **Canadian users** to maximize tax deductions while remaining fully compliant with **2026 CRA (Canada Revenue Agency)** rules.
+**Aurora** is a premium, production-ready mileage tracker app built with Flutter. It's specifically designed for **Canadian users** to maximize tax deductions while remaining fully compliant with **2026 CRA (Canada Revenue Agency)** rules.
 
 ## ✨ Features
 - **Official 2026 Rates**: Automatically applies $0.73/km (tier 1) and $0.67/km (tier 2).
@@ -53,7 +53,7 @@ CRA usually announces new rates in mid-January. To update:
 
 ## 📂 CRA Record-Keeping Reminder
 > [!IMPORTANT]
-> The Canada Revenue Agency (CRA) requires you to keep your mileage logbooks and supporting documents for **6 years** from the end of the tax year they relate to. KiloDrive's PDF export is designed to fulfill the Motor Vehicle Expense Logbook requirements.
+> The Canada Revenue Agency (CRA) requires you to keep your mileage logbooks and supporting documents for **6 years** from the end of the tax year they relate to. Aurora's PDF export is designed to fulfill the Motor Vehicle Expense Logbook requirements.
 
 ## 🛠 Tech Stack
 - **Framework**: Flutter (Dart)

@@ -31,7 +31,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
-    final List<Widget> _screens = [
+    final List<Widget> screens = [
       DashboardHome(
         onViewAllTrips: () => _onDestinationSelected(1),
         onStartTrip: () => _onDestinationSelected(2),
@@ -45,13 +45,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Scaffold(
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 300),
-        child: _screens[_selectedIndex],
+        child: screens[_selectedIndex],
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.3 : 0.1),
+              color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.1),
               blurRadius: 20,
               offset: const Offset(0, -5),
             ),
@@ -61,7 +61,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           selectedIndex: _selectedIndex,
           onDestinationSelected: _onDestinationSelected,
           backgroundColor: Theme.of(context).colorScheme.surface,
-          indicatorColor: AppColours.canadianRed.withOpacity(0.1),
+          indicatorColor: AppColours.canadianRed.withValues(alpha: 0.1),
           labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
           height: 70,
           destinations: [
@@ -80,7 +80,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return NavigationDestination(
       selectedIcon: Icon(selectedIcon, color: AppColours.canadianRed),
-      icon: Icon(icon, color: isDark ? Colors.white70 : AppColours.charcoal.withOpacity(0.6)),
+      icon: Icon(icon, color: isDark ? Colors.white70 : AppColours.charcoal.withValues(alpha: 0.6)),
       label: label,
     );
   }
@@ -257,9 +257,9 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 margin: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
-                  color: AppColours.successGreen.withOpacity(0.1),
+                  color: AppColours.successGreen.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColours.successGreen.withOpacity(0.2)),
+                  border: Border.all(color: AppColours.successGreen.withValues(alpha: 0.2)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -272,7 +272,7 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
                           child: CircularProgressIndicator(
                             value: kmProgress,
                             strokeWidth: 2.5,
-                            backgroundColor: AppColours.successGreen.withOpacity(0.2),
+                            backgroundColor: AppColours.successGreen.withValues(alpha: 0.2),
                             valueColor: const AlwaysStoppedAnimation<Color>(AppColours.successGreen),
                           ),
                         ),
@@ -397,7 +397,7 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -409,7 +409,7 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: color, size: 20),
@@ -430,7 +430,7 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
             title,
             style: GoogleFonts.inter(
               fontSize: 12,
-              color: isDark ? Colors.white70 : AppColours.charcoal.withOpacity(0.7),
+              color: isDark ? Colors.white70 : AppColours.charcoal.withValues(alpha: 0.7),
               fontWeight: FontWeight.w500,
             ),
             maxLines: 1,
@@ -541,7 +541,7 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(isDark ? 0.2 : 0.02),
+                color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -559,7 +559,7 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: (isBusiness ? AppColours.canadianRed : Colors.grey).withOpacity(0.1),
+                        color: (isBusiness ? AppColours.canadianRed : Colors.grey).withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(

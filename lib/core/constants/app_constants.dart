@@ -1,8 +1,8 @@
 class AppConstants {
-  static const String appName = 'KiloDrive — CRA Mileage Tracker';
+  static const String appName = 'Aurora — CRA Mileage Tracker';
   static const String tagline = 'Every kilometre counts at tax time.';
   
-  static const String databaseName = 'kilodrive.isar';
+  static const String databaseName = 'aurora.isar';
   
   // Storage Keys
   static const String keyOnboardingComplete = 'onboarding_complete';

@@ -48,7 +48,7 @@ void main() async {
               const Icon(Icons.bug_report, color: Colors.white, size: 50),
               const SizedBox(height: 10),
               const Text(
-                'KiloDrive Crashed',
+                'Aurora Crashed',
                 style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 10),
@@ -87,13 +87,13 @@ void main() async {
 
   runApp(
     const ProviderScope(
-      child: KiloDriveApp(),
+      child: AuroraApp(),
     ),
   );
 }
 
-class KiloDriveApp extends ConsumerWidget {
-  const KiloDriveApp({super.key});
+class AuroraApp extends ConsumerWidget {
+  const AuroraApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -108,7 +108,7 @@ class KiloDriveApp extends ConsumerWidget {
     }
 
     return MaterialApp(
-      title: 'KiloDrive',
+      title: 'Aurora',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,

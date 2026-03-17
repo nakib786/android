@@ -185,7 +185,7 @@ class _VehicleSetupScreenState extends State<VehicleSetupScreen> with SingleTick
           ..year = int.parse(_selectedYear!)
           ..licensePlate = _licensePlateController.text
           ..province = selectedProvince
-          ..colorHex = AppColours.canadianRed.value
+          ..colorHex = AppColours.canadianRed.toARGB32()
           ..iconType = _selectedIconType
           ..isDefault = true;
 
@@ -375,8 +375,8 @@ class _VehicleSetupScreenState extends State<VehicleSetupScreen> with SingleTick
                                       boxShadow: [
                                         BoxShadow(
                                           color: isSelected 
-                                            ? AppColours.canadianRed.withOpacity(0.3) 
-                                            : Colors.black.withOpacity(0.05),
+                                            ? AppColours.canadianRed.withValues(alpha: 0.3) 
+                                            : Colors.black.withValues(alpha: 0.05),
                                           blurRadius: 10,
                                           offset: const Offset(0, 4),
                                         )
@@ -423,7 +423,7 @@ class _VehicleSetupScreenState extends State<VehicleSetupScreen> with SingleTick
                           const Gap(16),
                           
                           DropdownButtonFormField<String>(
-                            value: _selectedYear,
+                            initialValue: _selectedYear,
                             isExpanded: true,
                             icon: const Icon(Icons.keyboard_arrow_down_rounded),
                             decoration: _getInputDecoration("Model Year", icon: Icons.calendar_today_rounded),
@@ -441,7 +441,7 @@ class _VehicleSetupScreenState extends State<VehicleSetupScreen> with SingleTick
 
                           const Gap(20),
                           DropdownButtonFormField<String>(
-                            value: _selectedMake,
+                            initialValue: _selectedMake,
                             isExpanded: true,
                             icon: const Icon(Icons.keyboard_arrow_down_rounded),
                             decoration: _getInputDecoration("Vehicle Make", icon: Icons.branding_watermark_rounded),
@@ -462,7 +462,7 @@ class _VehicleSetupScreenState extends State<VehicleSetupScreen> with SingleTick
                             duration: const Duration(milliseconds: 300),
                             child: DropdownButtonFormField<String>(
                               key: ValueKey(_isLoadingModels),
-                              value: _selectedModel,
+                              initialValue: _selectedModel,
                               isExpanded: true,
                               icon: _isLoadingModels 
                                 ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColours.canadianRed))
@@ -514,7 +514,7 @@ class _VehicleSetupScreenState extends State<VehicleSetupScreen> with SingleTick
                               onPressed: _isSaving || _isLoadingInitial ? null : _saveVehicle,
                               style: ElevatedButton.styleFrom(
                                 elevation: 4,
-                                shadowColor: AppColours.canadianRed.withOpacity(0.4),
+                                shadowColor: AppColours.canadianRed.withValues(alpha: 0.4),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                                 backgroundColor: AppColours.canadianRed,
                                 foregroundColor: Colors.white,

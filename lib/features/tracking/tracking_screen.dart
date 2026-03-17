@@ -84,12 +84,10 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> with SingleTick
   Future<void> _getLocation() async {
     try {
       Position? pos = await Geolocator.getLastKnownPosition();
-      if (pos == null) {
-        pos = await Geolocator.getCurrentPosition(
+      pos ??= await Geolocator.getCurrentPosition(
           locationSettings: AndroidSettings(accuracy: LocationAccuracy.high)
         );
-      }
-      if (mounted && pos != null) {
+      if (mounted) {
         final position = pos;
         setState(() {
           _currentLocation = LatLng(position.latitude, position.longitude);
@@ -145,7 +143,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> with SingleTick
                 title: Text(v.nickname, style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: isDark ? Colors.white : AppColours.charcoal)),
                 subtitle: Text("${v.year} ${v.make} ${v.model}", style: GoogleFonts.inter(fontSize: 12, color: isDark ? Colors.white70 : Colors.grey[600])),
                 onTap: () => Navigator.pop(context, v),
-              )).toList(),
+              )),
               const Gap(16),
             ],
           ),
@@ -384,7 +382,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> with SingleTick
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(isDark ? 0.3 : 0.1), blurRadius: 20, offset: const Offset(0, 10)),
+          BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.1), blurRadius: 20, offset: const Offset(0, 10)),
         ],
       ),
       padding: const EdgeInsets.all(8),
@@ -454,12 +452,12 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> with SingleTick
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(isDark ? 0.3 : 0.05), blurRadius: 15, offset: const Offset(0, 5)),
+          BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05), blurRadius: 15, offset: const Offset(0, 5)),
         ],
       ),
       child: Row(
         children: [
-          Expanded(child: _buildStatItem("DISTANCE", "${state.currentKm.toStringAsFixed(2)}", "km", Icons.straighten_rounded, Colors.blue)),
+          Expanded(child: _buildStatItem("DISTANCE", state.currentKm.toStringAsFixed(2), "km", Icons.straighten_rounded, Colors.blue)),
           Container(width: 1, height: 40, color: isDark ? Colors.white10 : Colors.grey.shade100),
           Expanded(child: _buildStatItem("TIME", _formatDuration(state.elapsed), "", Icons.access_time_rounded, Colors.orange)),
           Container(width: 1, height: 40, color: isDark ? Colors.white10 : Colors.grey.shade100),
@@ -596,7 +594,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> with SingleTick
                     onSelected: (val) {
                       if (val) setSheetState(() => _selectedCategory = cat);
                     },
-                    selectedColor: AppColours.canadianRed.withOpacity(0.1),
+                    selectedColor: AppColours.canadianRed.withValues(alpha: 0.1),
                     backgroundColor: isDark ? Colors.white10 : Colors.white,
                     labelStyle: GoogleFonts.inter(
                       color: isSelected ? AppColours.canadianRed : (isDark ? Colors.white70 : Colors.grey[600]),

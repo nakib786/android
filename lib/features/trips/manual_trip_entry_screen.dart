@@ -11,7 +11,8 @@ import '../../shared/models/vehicle.dart';
 import '../../core/services/google_maps_service.dart';
 
 class ManualTripEntryScreen extends StatefulWidget {
-  const ManualTripEntryScreen({super.key});
+  final VoidCallback? onSaved;
+  const ManualTripEntryScreen({super.key, this.onSaved});
 
   @override
   State<ManualTripEntryScreen> createState() => _ManualTripEntryScreenState();
@@ -144,6 +145,7 @@ class _ManualTripEntryScreenState extends State<ManualTripEntryScreen> with Sing
     });
 
     if (mounted) {
+      if (widget.onSaved != null) widget.onSaved!();
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -249,7 +251,7 @@ class _ManualTripEntryScreenState extends State<ManualTripEntryScreen> with Sing
   Widget _buildAddressList(BuildContext context) {
     return Column(
       children: List.generate(_addressControllers.length, (index) {
-        String label = index == 0 ? "Start Point" : (index == _addressControllers.length - 1 ? "Destination" : "Stop ${index}");
+        String label = index == 0 ? "Start Point" : (index == _addressControllers.length - 1 ? "Destination" : "Stop $index");
         IconData icon = index == 0 ? Icons.circle_outlined : (index == _addressControllers.length - 1 ? Icons.location_on_rounded : Icons.more_vert_rounded);
         
         return Padding(
@@ -303,7 +305,7 @@ class _ManualTripEntryScreenState extends State<ManualTripEntryScreen> with Sing
             labelText: label,
             prefixIcon: Icon(icon, color: AppColours.canadianRed, size: 20),
             filled: true,
-            fillColor: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+            fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
           ),
           onChanged: (text) {
@@ -330,7 +332,7 @@ class _ManualTripEntryScreenState extends State<ManualTripEntryScreen> with Sing
                 padding: EdgeInsets.zero,
                 shrinkWrap: true,
                 itemCount: options.length,
-                separatorBuilder: (context, i) => Divider(height: 1, color: isDark ? Colors.white10 : Colors.grey.shade100),
+                separatorBuilder: (context, i) => Divider(height: 1, color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.shade100),
                 itemBuilder: (BuildContext context, int index) {
                   final Map<String, dynamic> option = options.elementAt(index);
                   return ListTile(
@@ -355,7 +357,7 @@ class _ManualTripEntryScreenState extends State<ManualTripEntryScreen> with Sing
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -392,13 +394,13 @@ class _ManualTripEntryScreenState extends State<ManualTripEntryScreen> with Sing
         Expanded(
           flex: 3,
           child: DropdownButtonFormField<Vehicle>(
-            value: _selectedVehicle,
+            initialValue: _selectedVehicle,
             dropdownColor: Theme.of(context).colorScheme.surface,
             isExpanded: true,
             decoration: InputDecoration(
               labelText: "Vehicle",
               filled: true,
-              fillColor: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+              fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             ),
@@ -426,7 +428,7 @@ class _ManualTripEntryScreenState extends State<ManualTripEntryScreen> with Sing
               padding: const EdgeInsets.all(12),
               height: 56,
               decoration: BoxDecoration(
-                color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+                color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
@@ -456,13 +458,13 @@ class _ManualTripEntryScreenState extends State<ManualTripEntryScreen> with Sing
     return Column(
       children: [
         DropdownButtonFormField<String>(
-          value: _category,
+          initialValue: _category,
           dropdownColor: Theme.of(context).colorScheme.surface,
           isExpanded: true,
           decoration: InputDecoration(
             labelText: "Category",
             filled: true,
-            fillColor: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+            fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
           ),
           items: ['Business', 'Personal', 'Medical', 'Charity', 'Moving'].map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
@@ -477,7 +479,7 @@ class _ManualTripEntryScreenState extends State<ManualTripEntryScreen> with Sing
             hintText: "Meeting with client...",
             prefixIcon: const Icon(Icons.edit_note_rounded, color: AppColours.canadianRed),
             filled: true,
-            fillColor: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+            fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
           ),
           validator: (val) => val == null || val.isEmpty ? "Required" : null,
@@ -497,7 +499,7 @@ class _ManualTripEntryScreenState extends State<ManualTripEntryScreen> with Sing
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           elevation: 4,
-          shadowColor: AppColours.canadianRed.withOpacity(0.4),
+          shadowColor: AppColours.canadianRed.withValues(alpha: 0.4),
         ),
         child: Text("SAVE MANUAL LOG", style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1)),
       ),

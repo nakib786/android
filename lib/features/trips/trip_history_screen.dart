@@ -7,6 +7,7 @@ import '../../main.dart';
 import '../../shared/models/trip.dart';
 import 'package:intl/intl.dart';
 import 'edit_trip_screen.dart';
+import 'manual_trip_entry_screen.dart';
 
 class TripHistoryScreen extends StatefulWidget {
   const TripHistoryScreen({super.key});
@@ -69,6 +70,17 @@ class _TripHistoryScreenState extends State<TripHistoryScreen> with SingleTicker
     );
   }
 
+  Future<void> _navigateToManualEntry() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ManualTripEntryScreen(
+          onSaved: _loadTrips,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -86,8 +98,14 @@ class _TripHistoryScreenState extends State<TripHistoryScreen> with SingleTicker
         centerTitle: true,
         actions: [
           IconButton(
+            icon: Icon(Icons.add_rounded, color: isDark ? Colors.white : AppColours.charcoal),
+            onPressed: _navigateToManualEntry,
+            tooltip: 'Add Manual Trip',
+          ),
+          IconButton(
             icon: Icon(Icons.refresh_rounded, color: isDark ? Colors.white : AppColours.charcoal),
             onPressed: _loadTrips,
+            tooltip: 'Refresh',
           ),
         ],
       ),
@@ -137,6 +155,17 @@ class _TripHistoryScreenState extends State<TripHistoryScreen> with SingleTicker
           ),
           const Gap(8),
           Text("Completed trips will appear here.", style: GoogleFonts.inter(color: Colors.grey)),
+          const Gap(24),
+          ElevatedButton.icon(
+            onPressed: _navigateToManualEntry,
+            icon: const Icon(Icons.add_rounded),
+            label: const Text("Add Manual Trip"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColours.canadianRed,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
         ],
       ),
     );
@@ -167,7 +196,7 @@ class _TripHistoryScreenState extends State<TripHistoryScreen> with SingleTicker
                     _loadTrips();
                   }
                 },
-                selectedColor: AppColours.canadianRed.withOpacity(0.1),
+                selectedColor: AppColours.canadianRed.withValues(alpha: 0.1),
                 labelStyle: GoogleFonts.inter(
                   color: isSelected ? AppColours.canadianRed : Colors.grey[600],
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
@@ -196,7 +225,7 @@ class _TripHistoryScreenState extends State<TripHistoryScreen> with SingleTicker
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(isDark ? 0.2 : 0.03), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03), blurRadius: 10, offset: const Offset(0, 4)),
         ],
         border: trip.needsReview ? Border.all(color: Colors.orange.shade200, width: 1.5) : null,
       ),
@@ -218,7 +247,7 @@ class _TripHistoryScreenState extends State<TripHistoryScreen> with SingleTicker
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: _getCategoryColor(trip.category).withOpacity(0.1),
+                            color: _getCategoryColor(trip.category).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
@@ -230,7 +259,7 @@ class _TripHistoryScreenState extends State<TripHistoryScreen> with SingleTicker
                           const Gap(8),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                            decoration: BoxDecoration(color: Colors.orange.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
                             child: Row(
                               children: [
                                 const Icon(Icons.error_outline_rounded, size: 12, color: Colors.orange),
@@ -252,7 +281,7 @@ class _TripHistoryScreenState extends State<TripHistoryScreen> with SingleTicker
                     Column(
                       children: [
                         const Icon(Icons.circle, size: 12, color: AppColours.successGreen),
-                        Container(width: 1.5, height: 24, color: isDark ? Colors.white10 : Colors.grey[200]),
+                        Container(width: 1.5, height: 24, color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey[200]),
                         const Icon(Icons.location_on_rounded, size: 14, color: AppColours.canadianRed),
                       ],
                     ),
@@ -301,7 +330,7 @@ class _TripHistoryScreenState extends State<TripHistoryScreen> with SingleTicker
                   ],
                 ),
                 const Gap(16),
-                Container(height: 1, color: isDark ? Colors.white10 : Colors.grey.shade100),
+                Container(height: 1, color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.shade100),
                 const Gap(16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,

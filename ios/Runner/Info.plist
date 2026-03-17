@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>KiloDrive</string>
+	<string>Aurora</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>kilodrive</string>
+	<string>aurora</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -50,11 +50,11 @@
 
 	<!-- Location Permissions -->
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>KiloDrive needs access to your location to track your business mileage. | KiloDrive a besoin d'accéder à votre position pour suivre votre kilométrage professionnel.</string>
+	<string>Aurora needs access to your location to track your business mileage. | Aurora a besoin d'accéder à votre position pour suivre votre kilométrage professionnel.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>KiloDrive needs location access even in the background to record your trips accurately. | KiloDrive a besoin d'un accès à la localisation même en arrière-plan pour enregistrer vos trajets avec précision.</string>
+	<string>Aurora needs location access even in the background to record your trips accurately. | Aurora a besoin d'un accès à la localisation même en arrière-plan pour enregistrer vos trajets avec précision.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
-	<string>KiloDrive needs location access in the background to track your business trips. | KiloDrive a besoin d'un accès à la localisation en arrière-plan pour suivre vos déplacements professionnels.</string>
+	<string>Aurora needs location access in the background to track your business trips. | Aurora a besoin d'un accès à la localisation en arrière-plan pour suivre vos déplacements professionnels.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>location</string>

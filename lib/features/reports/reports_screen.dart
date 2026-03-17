@@ -3,9 +3,13 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:isar/isar.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:gap/gap.dart';
+import 'package:intl/intl.dart';
 import '../../core/theme/app_colours.dart';
 import '../../main.dart';
 import '../../shared/models/trip.dart';
+import '../../core/services/report_service.dart';
+
+enum TrendView { days, weeks, months }
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
@@ -22,10 +26,13 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
   double _charityDeduction = 0.0;
   
   Map<int, double> _monthlyDistances = {};
+  Map<int, double> _weeklyDistances = {};
+  Map<int, double> _dailyDistances = {};
   Map<String, double> _categoryCounts = {};
   
   bool _isLoading = true;
-  int _selectedYear = DateTime.now().year;
+  final int _selectedYear = DateTime.now().year;
+  TrendView _selectedTrendView = TrendView.months;
 
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -47,6 +54,11 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     super.dispose();
   }
 
+  int _getWeekNumber(DateTime date) {
+    int dayOfYear = int.parse(DateFormat("D").format(date));
+    return ((dayOfYear - date.weekday + 10) / 7).floor();
+  }
+
   Future<void> _loadReportData() async {
     setState(() => _isLoading = true);
 
@@ -59,11 +71,23 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     double medicalDeduction = 0;
     double charityDeduction = 0;
     Map<int, double> monthlyDistances = {};
+    Map<int, double> weeklyDistances = {};
+    Map<int, double> dailyDistances = {};
     Map<String, double> categoryCounts = {};
 
     for (final trip in trips) {
+      // Monthly
       final month = trip.date.month;
       monthlyDistances[month] = (monthlyDistances[month] ?? 0) + trip.distanceKm;
+
+      // Weekly (ISO week number)
+      final week = _getWeekNumber(trip.date);
+      weeklyDistances[week] = (weeklyDistances[week] ?? 0) + trip.distanceKm;
+
+      // Daily (Day of week 1-7)
+      final day = trip.date.weekday;
+      dailyDistances[day] = (dailyDistances[day] ?? 0) + trip.distanceKm;
+
       categoryCounts[trip.category] = (categoryCounts[trip.category] ?? 0) + 1;
 
       if (trip.category == 'Business') {
@@ -87,11 +111,21 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
         _medicalDeduction = medicalDeduction;
         _charityDeduction = charityDeduction;
         _monthlyDistances = monthlyDistances;
+        _weeklyDistances = weeklyDistances;
+        _dailyDistances = dailyDistances;
         _categoryCounts = categoryCounts;
         _isLoading = false;
       });
       _animationController.forward(from: 0);
     }
+  }
+
+  Future<List<Trip>> _getTripsForYear() async {
+    return await isar.trips.where()
+        .filter()
+        .dateBetween(DateTime(_selectedYear, 1, 1), DateTime(_selectedYear, 12, 31, 23, 59))
+        .sortByDate()
+        .findAll();
   }
 
   @override
@@ -130,7 +164,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                     const Gap(24),
                     _buildDeductionSummaryCard(),
                     const Gap(32),
-                    _buildSectionTitle(context, "Distance Trend", Icons.bar_chart_rounded),
+                    _buildTrendHeader(context),
                     const Gap(16),
                     _buildBarChartCard(context),
                     const Gap(32),
@@ -145,6 +179,52 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
               ),
             ),
           ),
+    );
+  }
+
+  Widget _buildTrendHeader(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        _buildSectionTitle(context, "Distance Trend", Icons.bar_chart_rounded),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+          decoration: BoxDecoration(
+            color: isDark ? Colors.white10 : AppColours.lightGrey,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              _buildTrendToggle(TrendView.days, "D"),
+              _buildTrendToggle(TrendView.weeks, "W"),
+              _buildTrendToggle(TrendView.months, "M"),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTrendToggle(TrendView view, String label) {
+    final isSelected = _selectedTrendView == view;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedTrendView = view),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColours.canadianRed : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.inter(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: isSelected ? Colors.white : Colors.grey,
+          ),
+        ),
+      ),
     );
   }
 
@@ -169,7 +249,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.2 : 0.03), blurRadius: 10)],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03), blurRadius: 10)],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -198,7 +278,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
         ),
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8)),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 15, offset: const Offset(0, 8)),
         ],
       ),
       child: Column(
@@ -234,34 +314,44 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
 
   Widget _buildBarChartCard(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final dataMap = _selectedTrendView == TrendView.months 
+        ? _monthlyDistances 
+        : _selectedTrendView == TrendView.weeks 
+            ? _weeklyDistances 
+            : _dailyDistances;
+    
+    int count = _selectedTrendView == TrendView.months ? 12 : _selectedTrendView == TrendView.weeks ? 53 : 7;
+    double maxVal = dataMap.values.isEmpty ? 100 : dataMap.values.reduce((a, b) => a > b ? a : b);
+    if (maxVal < 100) maxVal = 100;
+
     return Container(
       height: 280,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.2 : 0.03), blurRadius: 10)],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03), blurRadius: 10)],
       ),
-      child: _monthlyDistances.isEmpty 
+      child: dataMap.isEmpty 
         ? Center(child: Text("No tracking data yet", style: GoogleFonts.inter(color: Colors.grey)))
         : Column(
             children: [
               Expanded(
                 child: BarChart(
                   BarChartData(
-                    barGroups: List.generate(12, (index) {
-                      final month = index + 1;
+                    barGroups: List.generate(count, (index) {
+                      final key = index + 1;
                       return BarChartGroupData(
-                        x: month,
+                        x: key,
                         barRods: [
                           BarChartRodData(
-                            toY: _monthlyDistances[month] ?? 0,
+                            toY: dataMap[key] ?? 0,
                             color: AppColours.canadianRed,
-                            width: 14,
+                            width: _selectedTrendView == TrendView.weeks ? 4 : 14,
                             borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
                             backDrawRodData: BackgroundBarChartRodData(
                               show: true, 
-                              toY: 500, 
+                              toY: maxVal, 
                               color: isDark ? Colors.white10 : AppColours.lightGrey
                             ),
                           )
@@ -277,13 +367,23 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                       bottomTitles: AxisTitles(
                         sideTitles: SideTitles(
                           showTitles: true,
+                          interval: _selectedTrendView == TrendView.weeks ? 10 : 1,
                           getTitlesWidget: (value, meta) {
-                            const months = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
-                            if (value.toInt() < 1 || value.toInt() > 12) return const SizedBox();
+                            String text = '';
+                            if (_selectedTrendView == TrendView.months) {
+                              const months = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
+                              if (value.toInt() >= 1 && value.toInt() <= 12) text = months[value.toInt() - 1];
+                            } else if (_selectedTrendView == TrendView.days) {
+                              const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+                              if (value.toInt() >= 1 && value.toInt() <= 7) text = days[value.toInt() - 1];
+                            } else {
+                              text = value.toInt().toString();
+                            }
+                            
                             return Padding(
                               padding: const EdgeInsets.only(top: 8.0),
                               child: Text(
-                                months[value.toInt() - 1], 
+                                text,
                                 style: GoogleFonts.inter(
                                   fontSize: 10, 
                                   color: isDark ? Colors.white60 : Colors.grey[600], 
@@ -311,7 +411,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.2 : 0.03), blurRadius: 10)],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03), blurRadius: 10)],
       ),
       child: _categoryCounts.isEmpty
         ? Center(child: Text("No category data", style: GoogleFonts.inter(color: Colors.grey)))
@@ -379,7 +479,22 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           width: double.infinity,
           height: 60,
           child: ElevatedButton.icon(
-            onPressed: () {},
+            onPressed: () async {
+              final trips = await _getTripsForYear();
+              if (trips.isEmpty) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("No trips found for this year")));
+                }
+                return;
+              }
+              await ReportService.generatePdf(trips, _selectedYear, {
+                'totalDeduction': _totalBusinessDeduction,
+                'kmUnder5k': _kmUnder5k,
+                'kmOver5k': _kmOver5k,
+                'medical': _medicalDeduction,
+                'charity': _charityDeduction,
+              });
+            },
             icon: const Icon(Icons.picture_as_pdf_rounded),
             label: Text("GENERATE CRA LOGBOOK", style: GoogleFonts.poppins(fontWeight: FontWeight.bold, letterSpacing: 0.5)),
             style: ElevatedButton.styleFrom(
@@ -387,7 +502,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               elevation: 4,
-              shadowColor: AppColours.canadianRed.withOpacity(0.4),
+              shadowColor: AppColours.canadianRed.withValues(alpha: 0.4),
             ),
           ),
         ),
@@ -396,7 +511,16 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           width: double.infinity,
           height: 56,
           child: OutlinedButton.icon(
-            onPressed: () {},
+            onPressed: () async {
+              final trips = await _getTripsForYear();
+              if (trips.isEmpty) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("No trips found for this year")));
+                }
+                return;
+              }
+              await ReportService.generateCsv(trips, _selectedYear);
+            },
             icon: const Icon(Icons.table_chart_rounded),
             label: Text("EXPORT CSV DATA", style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColours.charcoal)),
             style: OutlinedButton.styleFrom(
