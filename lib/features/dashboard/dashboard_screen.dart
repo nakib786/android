@@ -11,6 +11,7 @@ import '../trips/trip_history_screen.dart';
 import '../reports/reports_screen.dart';
 import '../settings/settings_screen.dart';
 import '../trips/edit_trip_screen.dart';
+import '../trips/manual_trip_entry_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -31,7 +32,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
     final List<Widget> _screens = [
-      DashboardHome(onViewAllTrips: () => _onDestinationSelected(1)),
+      DashboardHome(
+        onViewAllTrips: () => _onDestinationSelected(1),
+        onStartTrip: () => _onDestinationSelected(2),
+      ),
       const TripHistoryScreen(),
       const TrackingScreen(),
       const ReportsScreen(),
@@ -84,7 +88,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
 class DashboardHome extends StatefulWidget {
   final VoidCallback onViewAllTrips;
-  const DashboardHome({super.key, required this.onViewAllTrips});
+  final VoidCallback onStartTrip;
+  const DashboardHome({super.key, required this.onViewAllTrips, required this.onStartTrip});
 
   @override
   State<DashboardHome> createState() => _DashboardHomeState();
@@ -234,6 +239,7 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.transparent,
+        centerTitle: false, // Prevents centering title when space is tight
         title: Text(
           "Dashboard",
           style: GoogleFonts.poppins(
@@ -244,59 +250,64 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
         ),
         actions: [
           // KM Progress in Header
-          GestureDetector(
-            onTap: () => _showCraRateDetails(context),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              margin: const EdgeInsets.symmetric(vertical: 10),
-              decoration: BoxDecoration(
-                color: AppColours.successGreen.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColours.successGreen.withOpacity(0.2)),
-              ),
-              child: Row(
-                children: [
-                  Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      SizedBox(
-                        width: 18, height: 18,
-                        child: CircularProgressIndicator(
-                          value: kmProgress,
-                          strokeWidth: 2.5,
-                          backgroundColor: AppColours.successGreen.withOpacity(0.2),
-                          valueColor: const AlwaysStoppedAnimation<Color>(AppColours.successGreen),
+          Flexible(
+            child: GestureDetector(
+              onTap: () => _showCraRateDetails(context),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                margin: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: AppColours.successGreen.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColours.successGreen.withOpacity(0.2)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        SizedBox(
+                          width: 16, height: 16,
+                          child: CircularProgressIndicator(
+                            value: kmProgress,
+                            strokeWidth: 2.5,
+                            backgroundColor: AppColours.successGreen.withOpacity(0.2),
+                            valueColor: const AlwaysStoppedAnimation<Color>(AppColours.successGreen),
+                          ),
                         ),
-                      ),
-                      Icon(Icons.bolt_rounded, size: 10, color: AppColours.successGreen),
-                    ],
-                  ),
-                  const Gap(8),
-                  Text(
-                    "${_businessKmYear.toStringAsFixed(0)} km",
-                    style: GoogleFonts.poppins(
-                      color: AppColours.successGreen,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
+                        const Icon(Icons.bolt_rounded, size: 10, color: AppColours.successGreen),
+                      ],
                     ),
-                  ),
-                ],
+                    const Gap(6),
+                    Text(
+                      "${_businessKmYear.toStringAsFixed(0)} km",
+                      style: GoogleFonts.poppins(
+                        color: AppColours.successGreen,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
           IconButton(
             icon: Icon(Icons.notifications_none_rounded, color: isDark ? Colors.white : AppColours.charcoal),
             onPressed: () {},
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
           ),
-          const Gap(4),
+          const Gap(8),
           Padding(
             padding: const EdgeInsets.only(right: 16.0),
             child: GestureDetector(
               onTap: () {},
               child: const CircleAvatar(
-                radius: 18,
+                radius: 16,
                 backgroundColor: AppColours.canadianRed,
-                child: Icon(Icons.person_rounded, color: Colors.white, size: 20),
+                child: Icon(Icons.person_rounded, color: Colors.white, size: 18),
               ),
             ),
           ),
@@ -407,26 +418,30 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
           Text(
             value,
             style: GoogleFonts.poppins(
-              fontSize: 20,
+              fontSize: 18,
               fontWeight: FontWeight.bold,
               color: isDark ? Colors.white : AppColours.charcoal,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           const Gap(2),
           Text(
             title,
             style: GoogleFonts.inter(
-              fontSize: 13,
+              fontSize: 12,
               color: isDark ? Colors.white70 : AppColours.charcoal.withOpacity(0.7),
               fontWeight: FontWeight.w500,
             ),
+            maxLines: 1,
           ),
           Text(
             subtitle,
             style: GoogleFonts.inter(
-              fontSize: 11,
+              fontSize: 10,
               color: isDark ? Colors.white38 : Colors.grey,
             ),
+            maxLines: 1,
           ),
         ],
       ),
@@ -436,18 +451,29 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
   Widget _buildQuickActions(BuildContext context) {
     return Row(
       children: [
-        Expanded(child: _buildActionButton(context, "Start Trip", Icons.play_arrow_rounded, AppColours.successGreen)),
+        Expanded(child: _buildActionButton(context, "Start Trip", Icons.play_arrow_rounded, AppColours.successGreen, onTap: widget.onStartTrip)),
         const Gap(12),
-        Expanded(child: _buildActionButton(context, "Manual", Icons.add_rounded, Colors.blue)),
+        Expanded(
+          child: _buildActionButton(
+            context, 
+            "Manual", 
+            Icons.add_rounded, 
+            Colors.blue, 
+            onTap: () async {
+              await Navigator.push(context, MaterialPageRoute(builder: (context) => const ManualTripEntryScreen()));
+              _loadDashboardData();
+            }
+          )
+        ),
         const Gap(12),
-        Expanded(child: _buildActionButton(context, "Export", Icons.ios_share_rounded, Colors.orange)),
+        Expanded(child: _buildActionButton(context, "Export", Icons.ios_share_rounded, Colors.orange, onTap: () {})),
       ],
     );
   }
 
-  Widget _buildActionButton(BuildContext context, String label, IconData icon, Color color) {
+  Widget _buildActionButton(BuildContext context, String label, IconData icon, Color color, {VoidCallback? onTap}) {
     return ElevatedButton(
-      onPressed: () {},
+      onPressed: onTap,
       style: ElevatedButton.styleFrom(
         backgroundColor: color,
         foregroundColor: Colors.white,
@@ -462,9 +488,11 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
           Text(
             label,
             style: GoogleFonts.inter(
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: FontWeight.bold,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.visible,
           ),
         ],
       ),
@@ -537,7 +565,7 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
                       child: Icon(
                         isBusiness ? Icons.business_center_rounded : Icons.person_rounded,
                         color: isBusiness ? AppColours.canadianRed : Colors.grey,
-                        size: 22,
+                        size: 20,
                       ),
                     ),
                     const Gap(12),
@@ -549,18 +577,24 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
                             trip.purpose.isEmpty ? "Untitled Trip" : trip.purpose,
                             style: GoogleFonts.inter(
                               fontWeight: FontWeight.bold, 
-                              fontSize: 15,
+                              fontSize: 14,
                               color: isDark ? Colors.white : AppColours.charcoal,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                           const Gap(4),
                           Row(
                             children: [
-                              Text(
-                                "${dateFormat.format(trip.date)} • ${trip.distanceKm.toStringAsFixed(1)} km",
-                                style: GoogleFonts.inter(fontSize: 12, color: isDark ? Colors.white54 : Colors.grey[600]),
+                              Flexible(
+                                child: Text(
+                                  "${dateFormat.format(trip.date)} • ${trip.distanceKm.toStringAsFixed(1)} km",
+                                  style: GoogleFonts.inter(fontSize: 11, color: isDark ? Colors.white54 : Colors.grey[600]),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
-                              const Gap(8),
+                              const Gap(6),
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
@@ -570,7 +604,7 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
                                 child: Text(
                                   trip.category,
                                   style: GoogleFonts.inter(
-                                    fontSize: 10, 
+                                    fontSize: 9, 
                                     fontWeight: FontWeight.bold, 
                                     color: isDark ? Colors.white70 : Colors.grey[700],
                                   ),
@@ -581,6 +615,7 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
                         ],
                       ),
                     ),
+                    const Gap(8),
                     Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.end,
@@ -590,13 +625,13 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
                           style: GoogleFonts.poppins(
                             fontWeight: FontWeight.bold, 
                             color: AppColours.successGreen,
-                            fontSize: 16,
+                            fontSize: 15,
                           ),
                         ),
                         Icon(
                           trip.isCraCompliant ? Icons.verified_rounded : Icons.error_outline_rounded,
                           color: trip.isCraCompliant ? AppColours.successGreen : AppColours.amberWarning, 
-                          size: 16,
+                          size: 14,
                         ),
                       ],
                     ),

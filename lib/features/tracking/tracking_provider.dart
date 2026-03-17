@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
@@ -170,7 +171,7 @@ class TripNotifier extends StateNotifier<TripState> {
         return "${place.street}, ${place.locality}, ${place.administrativeArea}";
       }
     } catch (e) {
-      print(e);
+      debugPrint(e.toString());
     }
     return "Unknown Address";
   }

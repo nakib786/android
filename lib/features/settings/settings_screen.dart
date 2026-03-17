@@ -98,16 +98,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final themeMode = ref.watch(themeProvider);
 
     return Scaffold(
-      backgroundColor: AppColours.lightGrey,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.transparent,
         title: Text(
           "Settings",
-          style: GoogleFonts.poppins(color: AppColours.charcoal, fontWeight: FontWeight.bold),
+          style: GoogleFonts.poppins(color: isDark ? Colors.white : AppColours.charcoal, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
       ),
@@ -117,21 +119,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
           physics: const BouncingScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           children: [
-            _buildSectionHeader("Vehicles", showAdd: true),
+            _buildSectionHeader(context, "Vehicles", showAdd: true),
             const Gap(12),
-            ..._vehicles.map((vehicle) => _buildVehicleCard(vehicle)),
+            ..._vehicles.map((vehicle) => _buildVehicleCard(context, vehicle)),
             const Gap(32),
-            _buildSectionHeader("App Preferences"),
+            _buildSectionHeader(context, "App Preferences"),
             const Gap(12),
-            _buildSettingsContainer([
+            _buildSettingsContainer(context, [
               _buildSettingsTile(
+                context,
                 icon: Icons.brightness_6_rounded,
                 title: "Theme Mode",
                 subtitle: themeMode.toString().split('.').last.toUpperCase(),
                 trailing: DropdownButtonHideUnderline(
                   child: DropdownButton<ThemeMode>(
                     value: themeMode,
-                    style: GoogleFonts.inter(color: AppColours.charcoal, fontWeight: FontWeight.w600),
+                    dropdownColor: theme.colorScheme.surface,
+                    style: GoogleFonts.inter(color: isDark ? Colors.white : AppColours.charcoal, fontWeight: FontWeight.w600),
                     onChanged: (ThemeMode? newMode) {
                       if (newMode != null) {
                         ref.read(themeProvider.notifier).setThemeMode(newMode);
@@ -145,15 +149,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
                   ),
                 ),
               ),
-              _buildDivider(),
+              _buildDivider(context),
               _buildSettingsTile(
+                context,
                 icon: Icons.notifications_active_rounded,
                 title: "Notifications",
                 subtitle: "Alerts & Reminders",
                 onTap: () {},
               ),
-              _buildDivider(),
+              _buildDivider(context),
               _buildSettingsTile(
+                context,
                 icon: Icons.straighten_rounded,
                 title: "Units",
                 subtitle: "Kilometres (km)",
@@ -161,23 +167,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
               ),
             ]),
             const Gap(32),
-            _buildSectionHeader("About"),
+            _buildSectionHeader(context, "About"),
             const Gap(12),
-            _buildSettingsContainer([
+            _buildSettingsContainer(context, [
               _buildSettingsTile(
+                context,
                 icon: Icons.info_outline_rounded,
                 title: "About KiloDrive",
                 subtitle: "Version 1.0.0",
                 onTap: () {},
               ),
-              _buildDivider(),
+              _buildDivider(context),
               _buildSettingsTile(
+                context,
                 icon: Icons.security_rounded,
                 title: "Privacy Policy",
                 onTap: () {},
               ),
-              _buildDivider(),
+              _buildDivider(context),
               _buildSettingsTile(
+                context,
                 icon: Icons.help_outline_rounded,
                 title: "Help & Support",
                 onTap: () {},
@@ -191,7 +200,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.5,
-                  color: Colors.grey[400],
+                  color: isDark ? Colors.white24 : Colors.grey[400],
                 ),
               ),
             ),
@@ -202,7 +211,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
     );
   }
 
-  Widget _buildSectionHeader(String title, {bool showAdd = false}) {
+  Widget _buildSectionHeader(BuildContext context, String title, {bool showAdd = false}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -212,7 +222,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
             fontSize: 12,
             fontWeight: FontWeight.bold,
             letterSpacing: 1,
-            color: Colors.grey[600],
+            color: isDark ? Colors.white54 : Colors.grey[600],
           ),
         ),
         if (showAdd)
@@ -232,13 +242,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
     );
   }
 
-  Widget _buildVehicleCard(Vehicle vehicle) {
+  Widget _buildVehicleCard(BuildContext context, Vehicle vehicle) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.2 : 0.02), blurRadius: 10, offset: const Offset(0, 4))],
         border: vehicle.isDefault ? Border.all(color: AppColours.canadianRed.withOpacity(0.3), width: 1.5) : null,
       ),
       child: ListTile(
@@ -255,8 +268,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
             size: 24,
           ),
         ),
-        title: Text(vehicle.nickname, style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
-        subtitle: Text("${vehicle.year} ${vehicle.make} ${vehicle.model}", style: GoogleFonts.inter(fontSize: 12, color: Colors.grey[600])),
+        title: Text(vehicle.nickname, style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColours.charcoal)),
+        subtitle: Text("${vehicle.year} ${vehicle.make} ${vehicle.model}", style: GoogleFonts.inter(fontSize: 12, color: isDark ? Colors.white54 : Colors.grey[600])),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -281,39 +294,44 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
     );
   }
 
-  Widget _buildSettingsContainer(List<Widget> children) {
+  Widget _buildSettingsContainer(BuildContext context, List<Widget> children) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.2 : 0.02), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: Column(children: children),
     );
   }
 
-  Widget _buildSettingsTile({
+  Widget _buildSettingsTile(
+    BuildContext context, {
     required IconData icon,
     required String title,
     String? subtitle,
     Widget? trailing,
     VoidCallback? onTap,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return ListTile(
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
       leading: Container(
         padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(color: AppColours.lightGrey, borderRadius: BorderRadius.circular(10)),
-        child: Icon(icon, size: 20, color: AppColours.charcoal),
+        decoration: BoxDecoration(color: isDark ? Colors.white10 : AppColours.lightGrey, borderRadius: BorderRadius.circular(10)),
+        child: Icon(icon, size: 20, color: isDark ? Colors.white : AppColours.charcoal),
       ),
-      title: Text(title, style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 15)),
-      subtitle: subtitle != null ? Text(subtitle, style: GoogleFonts.inter(fontSize: 12, color: Colors.grey)) : null,
-      trailing: trailing ?? const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+      title: Text(title, style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 15, color: isDark ? Colors.white : AppColours.charcoal)),
+      subtitle: subtitle != null ? Text(subtitle, style: GoogleFonts.inter(fontSize: 12, color: isDark ? Colors.white54 : Colors.grey)) : null,
+      trailing: trailing ?? Icon(Icons.chevron_right_rounded, color: isDark ? Colors.white24 : Colors.grey),
     );
   }
 
-  Widget _buildDivider() {
-    return Divider(height: 1, indent: 60, endIndent: 20, color: Colors.grey.shade100);
+  Widget _buildDivider(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Divider(height: 1, indent: 60, endIndent: 20, color: isDark ? Colors.white10 : Colors.grey.shade100);
   }
 }

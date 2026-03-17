@@ -97,7 +97,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ),
             const SizedBox(height: 40),
             DropdownButtonFormField<CanadaProvince>(
-              value: _selectedProvince,
+              initialValue: _selectedProvince,
               decoration: const InputDecoration(
                 labelText: "Select Province/Territory",
                 border: OutlineInputBorder(),
@@ -119,7 +119,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
+                  color: Colors.blue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(

@@ -96,18 +96,21 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: AppColours.lightGrey,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.transparent,
         title: Text(
           "CRA Reports",
-          style: GoogleFonts.poppins(color: AppColours.charcoal, fontWeight: FontWeight.bold),
+          style: GoogleFonts.poppins(color: isDark ? Colors.white : AppColours.charcoal, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
         actions: [
-          IconButton(icon: const Icon(Icons.share_rounded, color: AppColours.charcoal), onPressed: () {}),
+          IconButton(icon: Icon(Icons.share_rounded, color: isDark ? Colors.white : AppColours.charcoal), onPressed: () {}),
         ],
       ),
       body: _isLoading 
@@ -123,17 +126,17 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildYearSelector(),
+                    _buildYearSelector(context),
                     const Gap(24),
                     _buildDeductionSummaryCard(),
                     const Gap(32),
-                    _buildSectionTitle("Distance Trend", Icons.bar_chart_rounded),
+                    _buildSectionTitle(context, "Distance Trend", Icons.bar_chart_rounded),
                     const Gap(16),
-                    _buildBarChartCard(),
+                    _buildBarChartCard(context),
                     const Gap(32),
-                    _buildSectionTitle("Activity Mix", Icons.pie_chart_rounded),
+                    _buildSectionTitle(context, "Activity Mix", Icons.pie_chart_rounded),
                     const Gap(16),
-                    _buildPieChartCard(),
+                    _buildPieChartCard(context),
                     const Gap(40),
                     _buildExportSection(context),
                     const Gap(40),
@@ -145,38 +148,40 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     );
   }
 
-  Widget _buildSectionTitle(String title, IconData icon) {
+  Widget _buildSectionTitle(BuildContext context, String title, IconData icon) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Row(
       children: [
         Icon(icon, size: 20, color: AppColours.canadianRed),
         const Gap(8),
         Text(
           title,
-          style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: AppColours.charcoal),
+          style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColours.charcoal),
         ),
       ],
     );
   }
 
-  Widget _buildYearSelector() {
+  Widget _buildYearSelector(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.2 : 0.03), blurRadius: 10)],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.calendar_today_rounded, size: 16, color: Colors.grey[600]),
+          Icon(Icons.calendar_today_rounded, size: 16, color: isDark ? Colors.white60 : Colors.grey[600]),
           const Gap(10),
           Text(
             "Tax Year: $_selectedYear",
-            style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: AppColours.charcoal),
+            style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColours.charcoal),
           ),
           const Gap(4),
-          Icon(Icons.keyboard_arrow_down_rounded, color: Colors.grey[600]),
+          Icon(Icons.keyboard_arrow_down_rounded, color: isDark ? Colors.white60 : Colors.grey[600]),
         ],
       ),
     );
@@ -186,14 +191,14 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppColours.charcoal, AppColours.charcoal.withOpacity(0.8)],
+        gradient: const LinearGradient(
+          colors: [AppColours.charcoal, Color(0xFF1A1A1A)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
-          BoxShadow(color: AppColours.charcoal.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8)),
+          BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8)),
         ],
       ),
       child: Column(
@@ -227,14 +232,15 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     );
   }
 
-  Widget _buildBarChartCard() {
+  Widget _buildBarChartCard(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       height: 280,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.2 : 0.03), blurRadius: 10)],
       ),
       child: _monthlyDistances.isEmpty 
         ? Center(child: Text("No tracking data yet", style: GoogleFonts.inter(color: Colors.grey)))
@@ -253,7 +259,11 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                             color: AppColours.canadianRed,
                             width: 14,
                             borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
-                            backDrawRodData: BackgroundBarChartRodData(show: true, toY: 500, color: AppColours.lightGrey),
+                            backDrawRodData: BackgroundBarChartRodData(
+                              show: true, 
+                              toY: 500, 
+                              color: isDark ? Colors.white10 : AppColours.lightGrey
+                            ),
                           )
                         ],
                       );
@@ -272,7 +282,14 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                             if (value.toInt() < 1 || value.toInt() > 12) return const SizedBox();
                             return Padding(
                               padding: const EdgeInsets.only(top: 8.0),
-                              child: Text(months[value.toInt() - 1], style: GoogleFonts.inter(fontSize: 10, color: Colors.grey[600], fontWeight: FontWeight.bold)),
+                              child: Text(
+                                months[value.toInt() - 1], 
+                                style: GoogleFonts.inter(
+                                  fontSize: 10, 
+                                  color: isDark ? Colors.white60 : Colors.grey[600], 
+                                  fontWeight: FontWeight.bold
+                                )
+                              ),
                             );
                           },
                         ),
@@ -286,14 +303,15 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     );
   }
 
-  Widget _buildPieChartCard() {
+  Widget _buildPieChartCard(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       height: 240,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.2 : 0.03), blurRadius: 10)],
       ),
       child: _categoryCounts.isEmpty
         ? Center(child: Text("No category data", style: GoogleFonts.inter(color: Colors.grey)))
@@ -308,7 +326,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                         color: _getCategoryColor(entry.key),
                         title: '',
                         radius: 50,
-                        badgeWidget: _buildPieBadge(entry.key),
+                        badgeWidget: _buildPieBadge(context, entry.key),
                         badgePositionPercentageOffset: 1.3,
                       );
                     }).toList(),
@@ -319,35 +337,42 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
               Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: _categoryCounts.keys.map((cat) => _buildLegendItem(cat)).toList(),
+                children: _categoryCounts.keys.map((cat) => _buildLegendItem(context, cat)).toList(),
               ),
             ],
           ),
     );
   }
 
-  Widget _buildPieBadge(String category) {
+  Widget _buildPieBadge(BuildContext context, String category) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: _getCategoryColor(category), width: 1.5)),
+      decoration: BoxDecoration(
+        color: isDark ? AppColours.charcoal : Colors.white, 
+        shape: BoxShape.circle, 
+        border: Border.all(color: _getCategoryColor(category), width: 1.5)
+      ),
       child: Icon(_getCategoryIcon(category), size: 12, color: _getCategoryColor(category)),
     );
   }
 
-  Widget _buildLegendItem(String category) {
+  Widget _buildLegendItem(BuildContext context, String category) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
           Container(width: 8, height: 8, decoration: BoxDecoration(color: _getCategoryColor(category), shape: BoxShape.circle)),
           const Gap(8),
-          Text(category, style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500, color: AppColours.charcoal)),
+          Text(category, style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500, color: isDark ? Colors.white : AppColours.charcoal)),
         ],
       ),
     );
   }
 
   Widget _buildExportSection(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       children: [
         SizedBox(
@@ -373,9 +398,9 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           child: OutlinedButton.icon(
             onPressed: () {},
             icon: const Icon(Icons.table_chart_rounded),
-            label: Text("EXPORT CSV DATA", style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: AppColours.charcoal)),
+            label: Text("EXPORT CSV DATA", style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColours.charcoal)),
             style: OutlinedButton.styleFrom(
-              side: BorderSide(color: Colors.grey.shade300, width: 2),
+              side: BorderSide(color: isDark ? Colors.white24 : Colors.grey.shade300, width: 2),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             ),
           ),
