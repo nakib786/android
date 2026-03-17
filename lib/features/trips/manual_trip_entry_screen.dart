@@ -3,12 +3,12 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:gap/gap.dart';
 import 'package:intl/intl.dart';
 import 'package:isar/isar.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../core/theme/app_colours.dart';
 import '../../main.dart';
 import '../../shared/models/trip.dart';
 import '../../shared/models/vehicle.dart';
+import '../../core/services/google_maps_service.dart';
 
 class ManualTripEntryScreen extends StatefulWidget {
   const ManualTripEntryScreen({super.key});
@@ -35,6 +35,7 @@ class _ManualTripEntryScreenState extends State<ManualTripEntryScreen> with Sing
   
   bool _isCalculating = false;
   String? _estimatedTime;
+  List<LatLng> _routePoints = [];
 
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -101,20 +102,13 @@ class _ManualTripEntryScreenState extends State<ManualTripEntryScreen> with Sing
     setState(() => _isCalculating = true);
 
     try {
-      // For a production app, use Google Distance Matrix API or similar.
-      // Here we simulate a calculation based on address strings for the demo.
-      // Real implementation would require a valid API Key.
+      final details = await GoogleMapsService.getRouteDetails(filledAddresses);
       
-      await Future.delayed(const Duration(seconds: 1)); // Simulate API call
-      
-      // Mock calculation: 12.5km per stop as a placeholder
-      double mockDistance = (filledAddresses.length - 1) * 12.5;
-      int mockMinutes = (mockDistance * 1.5).toInt();
-
       if (mounted) {
         setState(() {
-          _distanceController.text = mockDistance.toStringAsFixed(1);
-          _estimatedTime = "${mockMinutes} mins";
+          _distanceController.text = (details['distance'] as double).toStringAsFixed(1);
+          _estimatedTime = details['duration'] as String;
+          _routePoints = (details['points'] as List<LatLng>?) ?? [];
           _isCalculating = false;
         });
       }
@@ -127,18 +121,22 @@ class _ManualTripEntryScreenState extends State<ManualTripEntryScreen> with Sing
     if (!_formKey.currentState!.validate()) return;
     if (_selectedVehicle == null) return;
 
+    final distance = double.tryParse(_distanceController.text) ?? 0.0;
+
     final trip = Trip()
       ..date = _selectedDate
       ..startTime = _selectedDate
-      ..endTime = _selectedDate.add(const Duration(hours: 1)) // Estimated
-      ..distanceKm = double.tryParse(_distanceController.text) ?? 0.0
+      ..endTime = _selectedDate.add(const Duration(hours: 1)) // Approx
+      ..distanceKm = distance
       ..purpose = _purposeController.text
       ..category = _category
       ..vehicleId = _selectedVehicle!.id
       ..startAddress = _addressControllers.first.text
       ..endAddress = _addressControllers.last.text
-      ..deductionCad = (double.tryParse(_distanceController.text) ?? 0.0) * 0.73
+      ..deductionCad = distance * 0.73
       ..isCraCompliant = _purposeController.text.isNotEmpty
+      ..latitudePoints = _routePoints.map((p) => p.latitude).toList()
+      ..longitudePoints = _routePoints.map((p) => p.longitude).toList()
       ..needsReview = false;
 
     await isar.writeTxn(() async {
@@ -249,7 +247,6 @@ class _ManualTripEntryScreenState extends State<ManualTripEntryScreen> with Sing
   }
 
   Widget _buildAddressList(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       children: List.generate(_addressControllers.length, (index) {
         String label = index == 0 ? "Start Point" : (index == _addressControllers.length - 1 ? "Destination" : "Stop ${index}");
@@ -258,24 +255,15 @@ class _ManualTripEntryScreenState extends State<ManualTripEntryScreen> with Sing
         return Padding(
           padding: const EdgeInsets.only(bottom: 16.0),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: TextFormField(
-                  controller: _addressControllers[index],
-                  style: GoogleFonts.inter(color: isDark ? Colors.white : AppColours.charcoal),
-                  decoration: InputDecoration(
-                    labelText: label,
-                    prefixIcon: Icon(icon, color: AppColours.canadianRed, size: 20),
-                    filled: true,
-                    fillColor: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                  ),
-                  onChanged: (_) => _calculateRoute(),
-                  validator: (val) => val == null || val.isEmpty ? "Required" : null,
-                ),
+                child: _buildAutocompleteField(context, index, label, icon),
               ),
               if (index > 0 && index < _addressControllers.length - 1)
                 IconButton(
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
                   icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent),
                   onPressed: () => _removeStop(index),
                 ),
@@ -286,10 +274,86 @@ class _ManualTripEntryScreenState extends State<ManualTripEntryScreen> with Sing
     );
   }
 
+  Widget _buildAutocompleteField(BuildContext context, int index, String label, IconData icon) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    return Autocomplete<Map<String, dynamic>>(
+      displayStringForOption: (option) => option['description'],
+      optionsBuilder: (TextEditingValue textEditingValue) async {
+        if (textEditingValue.text.isEmpty) {
+          return const Iterable<Map<String, dynamic>>.empty();
+        }
+        return await GoogleMapsService.getAutocomplete(textEditingValue.text);
+      },
+      onSelected: (Map<String, dynamic> selection) {
+        _addressControllers[index].text = selection['description'];
+        _calculateRoute();
+      },
+      fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+        // Synchronize the autocomplete controller with our stored controller
+        if (controller.text.isEmpty && _addressControllers[index].text.isNotEmpty) {
+          controller.text = _addressControllers[index].text;
+        }
+        
+        return TextFormField(
+          controller: controller,
+          focusNode: focusNode,
+          style: GoogleFonts.inter(color: isDark ? Colors.white : AppColours.charcoal),
+          decoration: InputDecoration(
+            labelText: label,
+            prefixIcon: Icon(icon, color: AppColours.canadianRed, size: 20),
+            filled: true,
+            fillColor: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+          ),
+          onChanged: (text) {
+            _addressControllers[index].text = text;
+            _calculateRoute();
+          },
+          onFieldSubmitted: (text) {
+            onFieldSubmitted();
+          },
+          validator: (val) => val == null || val.isEmpty ? "Required" : null,
+        );
+      },
+      optionsViewBuilder: (context, onSelected, options) {
+        return Align(
+          alignment: Alignment.topLeft,
+          child: Material(
+            elevation: 4.0,
+            borderRadius: BorderRadius.circular(16),
+            color: isDark ? const Color(0xFF2C2C2C) : Colors.white,
+            child: Container(
+              width: MediaQuery.of(context).size.width - 80,
+              constraints: const BoxConstraints(maxHeight: 250),
+              child: ListView.separated(
+                padding: EdgeInsets.zero,
+                shrinkWrap: true,
+                itemCount: options.length,
+                separatorBuilder: (context, i) => Divider(height: 1, color: isDark ? Colors.white10 : Colors.grey.shade100),
+                itemBuilder: (BuildContext context, int index) {
+                  final Map<String, dynamic> option = options.elementAt(index);
+                  return ListTile(
+                    leading: const Icon(Icons.location_on_outlined, size: 18, color: Colors.grey),
+                    title: Text(
+                      option['description'],
+                      style: GoogleFonts.inter(fontSize: 13, color: isDark ? Colors.white : AppColours.charcoal),
+                    ),
+                    onTap: () => onSelected(option),
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildReadOnlyField(BuildContext context, String label, String value, IconData icon, {bool isLoading = false}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -297,15 +361,22 @@ class _ManualTripEntryScreenState extends State<ManualTripEntryScreen> with Sing
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: GoogleFonts.inter(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold)),
+          Text(label, style: GoogleFonts.inter(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
           const Gap(4),
           Row(
             children: [
-              Icon(icon, size: 16, color: AppColours.canadianRed),
-              const Gap(8),
-              isLoading 
-                ? const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2))
-                : Text(value, style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16, color: isDark ? Colors.white : AppColours.charcoal)),
+              Icon(icon, size: 14, color: AppColours.canadianRed),
+              const Gap(6),
+              Expanded(
+                child: isLoading 
+                  ? const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2))
+                  : Text(
+                      value, 
+                      style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14, color: isDark ? Colors.white : AppColours.charcoal),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+              ),
             ],
           ),
         ],
@@ -316,23 +387,31 @@ class _ManualTripEntryScreenState extends State<ManualTripEntryScreen> with Sing
   Widget _buildVehicleAndDateRow(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
+          flex: 3,
           child: DropdownButtonFormField<Vehicle>(
             value: _selectedVehicle,
             dropdownColor: Theme.of(context).colorScheme.surface,
+            isExpanded: true,
             decoration: InputDecoration(
               labelText: "Vehicle",
               filled: true,
               fillColor: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             ),
-            items: _availableVehicles.map((v) => DropdownMenuItem(value: v, child: Text(v.nickname))).toList(),
+            items: _availableVehicles.map((v) => DropdownMenuItem(
+              value: v, 
+              child: Text(v.nickname, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13))
+            )).toList(),
             onChanged: (val) => setState(() => _selectedVehicle = val),
           ),
         ),
-        const Gap(16),
+        const Gap(12),
         Expanded(
+          flex: 2,
           child: InkWell(
             onTap: () async {
               final date = await showDatePicker(
@@ -344,17 +423,25 @@ class _ManualTripEntryScreenState extends State<ManualTripEntryScreen> with Sing
               if (date != null) setState(() => _selectedDate = date);
             },
             child: Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(12),
+              height: 56,
               decoration: BoxDecoration(
                 color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text("Date", style: GoogleFonts.inter(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold)),
-                  const Gap(4),
-                  Text(DateFormat('MMM d, yyyy').format(_selectedDate), style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+                  Text("Date", style: GoogleFonts.inter(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
+                  const Gap(2),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      DateFormat('MMM d').format(_selectedDate), 
+                      style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13, color: isDark ? Colors.white : AppColours.charcoal)
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -371,6 +458,7 @@ class _ManualTripEntryScreenState extends State<ManualTripEntryScreen> with Sing
         DropdownButtonFormField<String>(
           value: _category,
           dropdownColor: Theme.of(context).colorScheme.surface,
+          isExpanded: true,
           decoration: InputDecoration(
             labelText: "Category",
             filled: true,
