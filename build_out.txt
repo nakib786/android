@@ -1,0 +1,35 @@
+Running Gradle task 'assembleDebug'...                          
+Warning: Flutter support for your project's Android Gradle Plugin version (Android Gradle Plugin version 8.1.1) will soon be dropped. Please upgrade your Android Gradle Plugin version to a version of at least Android Gradle Plugin version 8.6.0 soon.
+Alternatively, use the flag "--android-skip-build-dependency-validation" to bypass this check.
+
+Potential fix: Your project's AGP version is typically defined in the plugins block of the `settings.gradle` file (C:\Users\nakib\OneDrive\Desktop\android\android/settings.gradle), by a plugin with the id of com.android.application. 
+If you don't see a plugins block, your project was likely created with an older template version. In this case it is most likely defined in the top-level build.gradle file (C:\Users\nakib\OneDrive\Desktop\android\android/build.gradle) by the following line in the dependencies block of the buildscript: "classpath 'com.android.tools.build:gradle:<version>'".
+
+Warning: Flutter support for your project's Kotlin version (1.9.24) will soon be dropped. Please upgrade your Kotlin version to a version of at least 2.1.0 soon.
+Alternatively, use the flag "--android-skip-build-dependency-validation" to bypass this check.
+
+Potential fix: Your project's KGP version is typically defined in the plugins block of the `settings.gradle` file (C:\Users\nakib\OneDrive\Desktop\android\android/settings.gradle), by a plugin with the id of org.jetbrains.kotlin.android. 
+If you don't see a plugins block, your project was likely created with an older template version, in which case it is most likely defined in the top-level build.gradle file (C:\Users\nakib\OneDrive\Desktop\android\android/build.gradle) by the ext.kotlin_version property.
+
+Incorrect package="dev.isar.isar_flutter_libs" found in source AndroidManifest.xml: C:\Users\nakib\AppData\Local\Pub\Cache\hosted\pub.dev\isar_flutter_libs-3.1.0+1\android\src\main\AndroidManifest.xml.
+Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported.
+Recommendation: remove package="dev.isar.isar_flutter_libs" from the source AndroidManifest.xml: C:\Users\nakib\AppData\Local\Pub\Cache\hosted\pub.dev\isar_flutter_libs-3.1.0+1\android\src\main\AndroidManifest.xml.
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':isar_flutter_libs:processDebugManifest'.
+> A failure occurred while executing com.android.build.gradle.tasks.ProcessLibraryManifest$ProcessLibWorkAction
+   > Incorrect package="dev.isar.isar_flutter_libs" found in source AndroidManifest.xml: C:\Users\nakib\AppData\Local\Pub\Cache\hosted\pub.dev\isar_flutter_libs-3.1.0+1\android\src\main\AndroidManifest.xml.
+     Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported.
+     Recommendation: remove package="dev.isar.isar_flutter_libs" from the source AndroidManifest.xml: C:\Users\nakib\AppData\Local\Pub\Cache\hosted\pub.dev\isar_flutter_libs-3.1.0+1\android\src\main\AndroidManifest.xml.
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 4s
+Running Gradle task 'assembleDebug'...                              4.7s
+Gradle task assembleDebug failed with exit code 1
