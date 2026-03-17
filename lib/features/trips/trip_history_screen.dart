@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:isar/isar.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:gap/gap.dart';
 import '../../core/theme/app_colours.dart';
 import '../../main.dart';
 import '../../shared/models/trip.dart';
 import 'package:intl/intl.dart';
+import 'edit_trip_screen.dart';
 
 class TripHistoryScreen extends StatefulWidget {
   const TripHistoryScreen({super.key});
@@ -13,15 +15,26 @@ class TripHistoryScreen extends StatefulWidget {
   State<TripHistoryScreen> createState() => _TripHistoryScreenState();
 }
 
-class _TripHistoryScreenState extends State<TripHistoryScreen> {
+class _TripHistoryScreenState extends State<TripHistoryScreen> with SingleTickerProviderStateMixin {
   List<Trip> _trips = [];
   String _selectedCategory = 'All';
   bool _isLoading = true;
+  late AnimationController _animationController;
 
   @override
   void initState() {
     super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
     _loadTrips();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadTrips() async {
@@ -40,132 +53,17 @@ class _TripHistoryScreenState extends State<TripHistoryScreen> {
         _trips = trips;
         _isLoading = false;
       });
+      _animationController.forward(from: 0);
     }
   }
 
-  Future<void> _deleteTrip(Trip trip) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Delete Trip"),
-        content: const Text("Are you sure you want to delete this trip? This action cannot be undone."),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("CANCEL")),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true), 
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text("DELETE"),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      await isar.writeTxn(() async {
-        await isar.trips.delete(trip.id);
-      });
-      _loadTrips();
-    }
-  }
-
-  Future<void> _editTrip(Trip trip) async {
-    final purposeController = TextEditingController(text: trip.purpose);
-    String category = trip.category;
-
-    await showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text("Edit Trip"),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (trip.latitudePoints != null && trip.latitudePoints!.isNotEmpty)
-                  Container(
-                    height: 200,
-                    width: double.maxFinite,
-                    margin: const EdgeInsets.only(bottom: 16),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: GoogleMap(
-                      initialCameraPosition: CameraPosition(
-                        target: LatLng(trip.latitudePoints!.first, trip.longitudePoints!.first),
-                        zoom: 13,
-                      ),
-                      polylines: {
-                        Polyline(
-                          polylineId: const PolylineId("route"),
-                          points: List.generate(trip.latitudePoints!.length, (i) => LatLng(trip.latitudePoints![i], trip.longitudePoints![i])),
-                          color: AppColours.canadianRed,
-                          width: 4,
-                        ),
-                      },
-                      markers: {
-                        Marker(
-                          markerId: const MarkerId("start"),
-                          position: LatLng(trip.latitudePoints!.first, trip.longitudePoints!.first),
-                          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
-                        ),
-                        Marker(
-                          markerId: const MarkerId("end"),
-                          position: LatLng(trip.latitudePoints!.last, trip.longitudePoints!.last),
-                          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-                        ),
-                      },
-                      myLocationEnabled: false,
-                      zoomControlsEnabled: false,
-                      mapToolbarEnabled: false,
-                    ),
-                  ),
-                Text("Start: ${trip.startAddress}", style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                Text("End: ${trip.endAddress}", style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: purposeController,
-                  decoration: const InputDecoration(labelText: "Purpose", border: OutlineInputBorder()),
-                ),
-                const SizedBox(height: 16),
-                DropdownButtonFormField<String>(
-                  value: category,
-                  decoration: const InputDecoration(labelText: "Category", border: OutlineInputBorder()),
-                  items: ['Business', 'Personal', 'Medical', 'Charity', 'Moving'].map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
-                  onChanged: (val) => setState(() => category = val!),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _deleteTrip(trip);
-              },
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: const Text("DELETE"),
-            ),
-            const Spacer(),
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text("CANCEL")),
-            ElevatedButton(
-              onPressed: () async {
-                trip.purpose = purposeController.text;
-                trip.category = category;
-                trip.isCraCompliant = trip.purpose.isNotEmpty;
-                trip.needsReview = false; // Mark as reviewed
-                
-                await isar.writeTxn(() async {
-                  await isar.trips.put(trip);
-                });
-                
-                if (mounted) Navigator.pop(context);
-                _loadTrips();
-              },
-              child: const Text("SAVE"),
-            ),
-          ],
+  Future<void> _navigateToEditTrip(Trip trip) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditTripScreen(
+          trip: trip,
+          onSaved: _loadTrips,
         ),
       ),
     );
@@ -173,11 +71,24 @@ class _TripHistoryScreenState extends State<TripHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text("Trip History"),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        title: Text(
+          "Trip History",
+          style: GoogleFonts.poppins(color: isDark ? Colors.white : AppColours.charcoal, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
         actions: [
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadTrips),
+          IconButton(
+            icon: Icon(Icons.refresh_rounded, color: isDark ? Colors.white : AppColours.charcoal),
+            onPressed: _loadTrips,
+          ),
         ],
       ),
       body: Column(
@@ -185,14 +96,26 @@ class _TripHistoryScreenState extends State<TripHistoryScreen> {
           _buildFilterChips(),
           Expanded(
             child: _isLoading 
-              ? const Center(child: CircularProgressIndicator())
+              ? const Center(child: CircularProgressIndicator(color: AppColours.canadianRed))
               : _trips.isEmpty
                 ? _buildEmptyState()
                 : ListView.builder(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    physics: const BouncingScrollPhysics(),
                     itemCount: _trips.length,
                     itemBuilder: (context, index) {
-                      return _buildTripCard(context, _trips[index]);
+                      return FadeTransition(
+                        opacity: _animationController,
+                        child: SlideTransition(
+                          position: Tween<Offset>(begin: const Offset(0, 0.1), end: Offset.zero).animate(
+                            CurvedAnimation(
+                              parent: _animationController,
+                              curve: Interval((index / _trips.length).clamp(0, 1), 1, curve: Curves.easeOut),
+                            ),
+                          ),
+                          child: _buildTripCard(context, _trips[index]),
+                        ),
+                      );
                     },
                   ),
           ),
@@ -206,14 +129,14 @@ class _TripHistoryScreenState extends State<TripHistoryScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.directions_car_outlined, size: 64, color: Colors.grey[300]),
-          const SizedBox(height: 16),
+          Icon(Icons.directions_car_outlined, size: 80, color: Colors.grey[300]),
+          const Gap(16),
           Text(
             "No trips found",
-            style: TextStyle(fontSize: 18, color: Colors.grey[600], fontWeight: FontWeight.bold),
+            style: GoogleFonts.poppins(fontSize: 18, color: AppColours.charcoal, fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 8),
-          const Text("Completed trips will appear here.", style: TextStyle(color: Colors.grey)),
+          const Gap(8),
+          Text("Completed trips will appear here.", style: GoogleFonts.inter(color: Colors.grey)),
         ],
       ),
     );
@@ -221,26 +144,40 @@ class _TripHistoryScreenState extends State<TripHistoryScreen> {
 
   Widget _buildFilterChips() {
     final filters = ['All', 'Business', 'Medical', 'Moving', 'Charity', 'Personal'];
-    return SizedBox(
+    return Container(
       height: 60,
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         itemCount: filters.length,
         itemBuilder: (context, index) {
           final filter = filters[index];
           final isSelected = _selectedCategory == filter;
           return Padding(
-            padding: const EdgeInsets.only(right: 8.0),
-            child: ChoiceChip(
-              label: Text(filter),
-              selected: isSelected,
-              onSelected: (val) {
-                if (val) {
-                  setState(() => _selectedCategory = filter);
-                  _loadTrips();
-                }
-              },
+            padding: const EdgeInsets.only(right: 12.0),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              child: ChoiceChip(
+                label: Text(filter),
+                selected: isSelected,
+                onSelected: (val) {
+                  if (val) {
+                    setState(() => _selectedCategory = filter);
+                    _loadTrips();
+                  }
+                },
+                selectedColor: AppColours.canadianRed.withOpacity(0.1),
+                labelStyle: GoogleFonts.inter(
+                  color: isSelected ? AppColours.canadianRed : Colors.grey[600],
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                ),
+                backgroundColor: Theme.of(context).colorScheme.surface,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(color: isSelected ? AppColours.canadianRed : Colors.transparent),
+                ),
+              ),
             ),
           );
         },
@@ -249,169 +186,140 @@ class _TripHistoryScreenState extends State<TripHistoryScreen> {
   }
 
   Widget _buildTripCard(BuildContext context, Trip trip) {
-    final dateFormat = DateFormat('EEE, MMM d, yyyy');
+    final dateFormat = DateFormat('EEE, MMM d');
     final timeFormat = DateFormat('h:mm a');
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     
-    return Dismissible(
-      key: Key(trip.id.toString()),
-      direction: DismissDirection.endToStart,
-      background: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        color: Colors.red,
-        child: const Icon(Icons.delete, color: Colors.white),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(isDark ? 0.2 : 0.03), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
+        border: trip.needsReview ? Border.all(color: Colors.orange.shade200, width: 1.5) : null,
       ),
-      confirmDismiss: (direction) => showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text("Delete Trip"),
-          content: const Text("Are you sure you want to delete this trip?"),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("CANCEL")),
-            TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("DELETE")),
-          ],
-        ),
-      ),
-      onDismissed: (direction) async {
-        await isar.writeTxn(() async {
-          await isar.trips.delete(trip.id);
-        });
-        _loadTrips();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Trip deleted")),
-          );
-        }
-      },
-      child: Card(
-        margin: const EdgeInsets.only(bottom: 16),
-        elevation: 2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: trip.needsReview 
-            ? BorderSide(color: Colors.orange.shade300, width: 2) 
-            : BorderSide.none,
-        ),
+      child: Material(
+        color: Colors.transparent,
         child: InkWell(
-          onTap: () => _editTrip(trip),
-          borderRadius: BorderRadius.circular(12),
+          onTap: () => _navigateToEditTrip(trip),
+          borderRadius: BorderRadius.circular(24),
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(20.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (trip.needsReview)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8.0),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.rate_review, size: 16, color: Colors.orange),
-                        const SizedBox(width: 4),
-                        Text(
-                          "NEEDS REVIEW",
-                          style: TextStyle(color: Colors.orange.shade800, fontSize: 11, fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                  ),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(dateFormat.format(trip.date), style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.w500)),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: _getCategoryColor(trip.category).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        trip.category,
-                        style: TextStyle(color: _getCategoryColor(trip.category), fontSize: 12, fontWeight: FontWeight.bold),
-                      ),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: _getCategoryColor(trip.category).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            trip.category.toUpperCase(),
+                            style: GoogleFonts.inter(color: _getCategoryColor(trip.category), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                          ),
+                        ),
+                        if (trip.needsReview) ...[
+                          const Gap(8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.error_outline_rounded, size: 12, color: Colors.orange),
+                                const Gap(4),
+                                Text("REVIEW", style: GoogleFonts.inter(color: Colors.orange, fontSize: 10, fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
+                    Text(dateFormat.format(trip.date), style: GoogleFonts.inter(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.w500)),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const Gap(16),
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.location_on_outlined, size: 18, color: AppColours.canadianRed),
-                    const SizedBox(width: 8),
+                    Column(
+                      children: [
+                        const Icon(Icons.circle, size: 12, color: AppColours.successGreen),
+                        Container(width: 1.5, height: 24, color: isDark ? Colors.white10 : Colors.grey[200]),
+                        const Icon(Icons.location_on_rounded, size: 14, color: AppColours.canadianRed),
+                      ],
+                    ),
+                    const Gap(12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            trip.purpose.isEmpty ? "No purpose specified" : trip.purpose,
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                            trip.purpose.isEmpty ? "Unspecified Purpose" : trip.purpose,
+                            style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColours.charcoal),
                           ),
+                          const Gap(4),
                           Text(
                             "${trip.startAddress} → ${trip.endAddress}",
-                            style: const TextStyle(fontSize: 11, color: Colors.grey),
+                            style: GoogleFonts.inter(fontSize: 12, color: isDark ? Colors.white54 : Colors.grey[600]),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
                     ),
-                    const Icon(Icons.edit, size: 16, color: Colors.grey),
                   ],
                 ),
-                const SizedBox(height: 4),
-                Padding(
-                  padding: const EdgeInsets.only(left: 26.0),
-                  child: Text(
-                    "${trip.startTime != null ? timeFormat.format(trip.startTime!) : 'Unknown'} → ${trip.endTime != null ? timeFormat.format(trip.endTime!) : 'Now'}",
-                    style: TextStyle(color: Colors.grey[600], fontSize: 13),
-                  ),
-                ),
-    
-                // Odometer Section (Visible if data exists)
-                if (trip.startOdometer != null) ...[
-                  const SizedBox(height: 8),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 26.0),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.speed, size: 14, color: Colors.grey),
-                        const SizedBox(width: 4),
-                        Text(
-                          "Odo: ${trip.startOdometer!.toStringAsFixed(0)} → ${trip.endOdometer?.toStringAsFixed(0) ?? '??'}",
-                          style: const TextStyle(fontSize: 12, color: Colors.blueGrey, fontWeight: FontWeight.w500),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-    
-                const Divider(height: 32),
+                const Gap(16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.straighten, size: 18, color: Colors.grey),
-                        const SizedBox(width: 4),
+                        const Icon(Icons.access_time_rounded, size: 16, color: Colors.grey),
+                        const Gap(4),
                         Text(
-                          "${trip.distanceKm.toStringAsFixed(2)} km",
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          "${trip.startTime != null ? timeFormat.format(trip.startTime!) : '...'} - ${trip.endTime != null ? timeFormat.format(trip.endTime!) : 'Now'}",
+                          style: GoogleFonts.inter(color: isDark ? Colors.white54 : Colors.grey[600], fontSize: 12),
                         ),
                       ],
                     ),
                     Row(
                       children: [
+                        const Icon(Icons.straighten_rounded, size: 16, color: Colors.grey),
+                        const Gap(4),
+                        Text("${trip.distanceKm.toStringAsFixed(1)} km", style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColours.charcoal)),
+                      ],
+                    ),
+                  ],
+                ),
+                const Gap(16),
+                Container(height: 1, color: isDark ? Colors.white10 : Colors.grey.shade100),
+                const Gap(16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Text("Deduction", style: GoogleFonts.inter(color: isDark ? Colors.white54 : Colors.grey, fontSize: 13)),
+                        const Gap(8),
                         Text(
                           "\$${trip.deductionCad.toStringAsFixed(2)}",
-                          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green, fontSize: 20),
-                        ),
-                        const SizedBox(width: 8),
-                        Icon(
-                          trip.isCraCompliant && !trip.needsReview ? Icons.check_circle : Icons.warning_amber_rounded,
-                          color: trip.isCraCompliant && !trip.needsReview ? Colors.green.shade700 : Colors.orange,
-                          size: 20,
+                          style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: AppColours.successGreen, fontSize: 18),
                         ),
                       ],
+                    ),
+                    Icon(
+                      trip.isCraCompliant && !trip.needsReview ? Icons.check_circle_rounded : Icons.warning_amber_rounded,
+                      color: trip.isCraCompliant && !trip.needsReview ? AppColours.successGreen : Colors.orange,
+                      size: 24,
                     ),
                   ],
                 ),

@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:isar/isar.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:flutter/foundation.dart' show defaultTargetPlatform;
+import 'package:google_fonts/google_fonts.dart';
+import 'package:gap/gap.dart';
 import '../../core/theme/app_colours.dart';
 import '../../main.dart';
 import '../../shared/models/vehicle.dart';
@@ -18,7 +18,7 @@ class TrackingScreen extends ConsumerStatefulWidget {
   ConsumerState<TrackingScreen> createState() => _TrackingScreenState();
 }
 
-class _TrackingScreenState extends ConsumerState<TrackingScreen> {
+class _TrackingScreenState extends ConsumerState<TrackingScreen> with SingleTickerProviderStateMixin {
   GoogleMapController? _mapController;
   LatLng? _currentLocation;
   
@@ -27,11 +27,24 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
   String _selectedCategory = 'Business';
   List<Vehicle> _availableVehicles = [];
 
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+
   @override
   void initState() {
     super.initState();
     _purposeController = TextEditingController();
     _loadVehicles();
+    
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+    
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.2).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkPermissions();
     });
@@ -42,6 +55,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     _purposeController.dispose();
     _purposeFocus.dispose();
     _mapController?.dispose();
+    _pulseController.dispose();
     super.dispose();
   }
 
@@ -76,7 +90,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
         );
       }
       if (mounted && pos != null) {
-        final position = pos; // Local non-nullable
+        final position = pos;
         setState(() {
           _currentLocation = LatLng(position.latitude, position.longitude);
         });
@@ -89,14 +103,18 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
 
   void _recenterMap(LatLng? location) {
     if (location != null && _mapController != null) {
-      _mapController!.animateCamera(CameraUpdate.newLatLngZoom(location, 15));
+      _mapController!.animateCamera(CameraUpdate.newLatLngZoom(location, 15.5));
     }
   }
 
   void _handleStartTrip() async {
     if (_availableVehicles.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please add a vehicle in settings first.")),
+        SnackBar(
+          content: const Text("Please add a vehicle first"),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
       );
       return;
     }
@@ -105,25 +123,28 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     if (_availableVehicles.length == 1) {
       selectedVehicle = _availableVehicles.first;
     } else {
-      selectedVehicle = await showDialog<Vehicle>(
+      selectedVehicle = await showModalBottomSheet<Vehicle>(
         context: context,
-        builder: (context) => AlertDialog(
-          title: const Text("Select Vehicle"),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: _availableVehicles.length,
-              itemBuilder: (context, index) {
-                final v = _availableVehicles[index];
-                return ListTile(
-                  leading: const Icon(Icons.directions_car),
-                  title: Text(v.nickname),
-                  subtitle: Text("${v.year} ${v.make} ${v.model}"),
-                  onTap: () => Navigator.pop(context, v),
-                );
-              },
-            ),
+        backgroundColor: Colors.transparent,
+        builder: (context) => Container(
+          padding: const EdgeInsets.all(24),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text("Select Vehicle", style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold)),
+              const Gap(16),
+              ..._availableVehicles.map((v) => ListTile(
+                leading: const Icon(Icons.directions_car_rounded, color: AppColours.canadianRed),
+                title: Text(v.nickname, style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+                subtitle: Text("${v.year} ${v.make} ${v.model}", style: GoogleFonts.inter(fontSize: 12)),
+                onTap: () => Navigator.pop(context, v),
+              )).toList(),
+              const Gap(16),
+            ],
           ),
         ),
       );
@@ -139,32 +160,46 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text("Start Trip - ${vehicle.nickname}"),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text("Start Trip", style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text("Optional: Enter current odometer reading to track precisely."),
-            const SizedBox(height: 16),
+            Text(
+              "Vehicle: ${vehicle.nickname}",
+              style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AppColours.canadianRed),
+            ),
+            const Gap(16),
+            Text(
+              "Optional: Enter current odometer reading for precise tracking.",
+              style: GoogleFonts.inter(fontSize: 13, color: Colors.grey[600]),
+            ),
+            const Gap(16),
             TextField(
               controller: odoController,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: "Current Odometer (km)",
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.speed),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                prefixIcon: const Icon(Icons.speed_rounded),
               ),
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("CANCEL")),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text("CANCEL", style: GoogleFonts.inter(color: Colors.grey))),
           ElevatedButton(
             onPressed: () {
               final double? odo = double.tryParse(odoController.text);
               ref.read(tripProvider.notifier).startTrip(vehicle, startOdometer: odo);
               Navigator.pop(context);
             },
-            child: const Text("START NOW"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColours.successGreen,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: Text("START NOW", style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.white)),
           ),
         ],
       ),
@@ -172,7 +207,6 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
   }
 
   void _handleStopTrip() {
-    // Only stop the tracking logic, but keep the data for the review sheet
     ref.read(tripProvider.notifier).stopTrackingOnly();
     _showTripSummary();
   }
@@ -203,17 +237,18 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
       ..startTime = state.startTime
       ..endTime = DateTime.now()
       ..distanceKm = state.currentKm
-      ..purpose = _purposeController.text.trim().isEmpty ? "No purpose specified" : _purposeController.text.trim()
+      ..purpose = _purposeController.text.trim().isEmpty ? "" : _purposeController.text.trim()
       ..category = _selectedCategory
       ..vehicleId = vehicle.id
-      ..startAddress = "GPS Tracked" // Could use geocoding here
+      ..startAddress = "GPS Tracked"
       ..endAddress = "GPS Tracked"
-      ..deductionCad = state.currentKm * 0.70 // Simplified CRA rate
-      ..isCraCompliant = _purposeController.text.isNotEmpty
+      ..deductionCad = state.currentKm * 0.73 // Updated rate
+      ..isCraCompliant = _purposeController.text.trim().isNotEmpty
       ..latitudePoints = state.points.map((p) => p.latitude).toList()
       ..longitudePoints = state.points.map((p) => p.longitude).toList()
       ..startOdometer = state.startOdometer
-      ..endOdometer = state.startOdometer != null ? (state.startOdometer! + state.currentKm) : null;
+      ..endOdometer = state.startOdometer != null ? (state.startOdometer! + state.currentKm) : null
+      ..needsReview = _purposeController.text.trim().isEmpty;
 
     await isar.writeTxn(() async {
       await isar.trips.put(trip);
@@ -225,7 +260,12 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     if (mounted) {
       Navigator.pop(context); // Close sheet
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Trip saved successfully!")),
+        SnackBar(
+          content: const Text("Trip saved successfully!"),
+          backgroundColor: AppColours.successGreen,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
       );
     }
   }
@@ -234,16 +274,12 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
   Widget build(BuildContext context) {
     final tripState = ref.watch(tripProvider);
 
-    // Listen for position changes to follow the user during tracking
     ref.listen<TripState>(tripProvider, (previous, next) {
       if (next.isTracking && next.lastPosition != null) {
         final pos = next.lastPosition!;
         final newLatLng = LatLng(pos.latitude, pos.longitude);
-        
-        // Update local variable so manual recentering uses latest tracking point
         _currentLocation = newLatLng;
 
-        // Only animate if the position has actually changed
         if (previous?.lastPosition == null || 
             previous!.lastPosition!.latitude != pos.latitude ||
             previous.lastPosition!.longitude != pos.longitude) {
@@ -253,30 +289,55 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     });
     
     return Scaffold(
-      appBar: AppBar(title: const Text("Live Tracking")),
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        title: Text(
+          "Live Tracking",
+          style: GoogleFonts.poppins(color: AppColours.charcoal, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+      ),
       body: Stack(
         children: [
           _currentLocation == null 
-              ? const Center(child: CircularProgressIndicator())
+              ? const Center(child: CircularProgressIndicator(color: AppColours.canadianRed))
               : GoogleMap(
-                  initialCameraPosition: CameraPosition(target: _currentLocation!, zoom: 15),
+                  initialCameraPosition: CameraPosition(target: _currentLocation!, zoom: 15.5),
                   myLocationEnabled: true,
-                  myLocationButtonEnabled: false, // Disable default to use custom positioned button
+                  myLocationButtonEnabled: false,
+                  zoomControlsEnabled: false,
                   onMapCreated: (controller) => _mapController = controller,
+                  polylines: tripState.points.isEmpty ? {} : {
+                    Polyline(
+                      polylineId: const PolylineId("live_track"),
+                      points: tripState.points.map((p) => LatLng(p.latitude, p.longitude)).toList(),
+                      color: AppColours.canadianRed,
+                      width: 5,
+                      startCap: Cap.roundCap,
+                      endCap: Cap.roundCap,
+                      jointType: JointType.round,
+                    )
+                  },
                 ),
           
-          Positioned(
-            top: 20, left: 20, right: 20,
-            child: _buildTrackingOverlay(tripState),
-          ),
+          // Floating Stats Card
+          if (tripState.isTracking || tripState.currentKm > 0)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 70,
+              left: 20, right: 20,
+              child: _buildTrackingOverlay(tripState),
+            ),
 
-          // Custom "Center to Location" button positioned above zoom buttons
+          // Recenter Button
           Positioned(
-            right: 12,
-            bottom: 220, // Positioned in the right middle-to-down area
+            right: 20,
+            bottom: 140,
             child: FloatingActionButton(
               heroTag: "recenter_fab",
               mini: true,
+              elevation: 4,
               backgroundColor: Colors.white,
               onPressed: () {
                 if (tripState.lastPosition != null) {
@@ -287,37 +348,79 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                   _getLocation();
                 }
               },
-              child: const Icon(Icons.my_location, color: Colors.blue),
+              child: const Icon(Icons.my_location_rounded, color: AppColours.canadianRed),
             ),
           ),
           
+          // Bottom Control Panel
           Positioned(
-            bottom: 40, left: 50, right: 50,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ElevatedButton(
-                  onPressed: tripState.isTracking ? _handleStopTrip : _handleStartTrip,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: tripState.isTracking ? Colors.red : Colors.green,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    minimumSize: const Size(double.infinity, 60),
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        tripState.isTracking ? "STOP TRIP" : "START TRIP",
-                        style: const TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold),
-                      ),
-                      if (!tripState.isTracking && _availableVehicles.length == 1)
-                        Text(
-                          _availableVehicles.first.nickname,
-                          style: const TextStyle(fontSize: 10, color: Colors.white70),
-                        ),
-                    ],
-                  ),
+            bottom: 30, left: 20, right: 20,
+            child: _buildControlPanel(tripState),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildControlPanel(TripState tripState) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, 10)),
+        ],
+      ),
+      padding: const EdgeInsets.all(8),
+      child: Row(
+        children: [
+          if (tripState.isTracking) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: ScaleTransition(
+                scale: _pulseAnimation,
+                child: Container(
+                  width: 12, height: 12,
+                  decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
                 ),
-              ],
+              ),
+            ),
+            Expanded(
+              child: Text(
+                "Tracking Active",
+                style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: AppColours.charcoal),
+              ),
+            ),
+          ] else
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(left: 20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text("Ready to drive?", style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+                    if (_availableVehicles.length == 1)
+                      Text(_availableVehicles.first.nickname, style: GoogleFonts.inter(fontSize: 12, color: Colors.grey)),
+                  ],
+                ),
+              ),
+            ),
+          
+          const Gap(8),
+          
+          ElevatedButton(
+            onPressed: tripState.isTracking ? _handleStopTrip : _handleStartTrip,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: tripState.isTracking ? AppColours.canadianRed : AppColours.successGreen,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+              elevation: 0,
+            ),
+            child: Text(
+              tripState.isTracking ? "STOP" : "START",
+              style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1),
             ),
           ),
         ],
@@ -326,35 +429,61 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
   }
 
   Widget _buildTrackingOverlay(TripState state) {
-    if (!state.isTracking && state.currentKm == 0) return const SizedBox.shrink();
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _buildStatItem("Distance", "${state.currentKm.toStringAsFixed(2)} km"),
-            _buildStatItem("Time", _formatDuration(state.elapsed)),
-          ],
-        ),
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 5)),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(child: _buildStatItem("DISTANCE", "${state.currentKm.toStringAsFixed(2)}", "km", Icons.straighten_rounded, Colors.blue)),
+          Container(width: 1, height: 40, color: Colors.grey.shade100),
+          Expanded(child: _buildStatItem("TIME", _formatDuration(state.elapsed), "", Icons.access_time_rounded, Colors.orange)),
+          Container(width: 1, height: 40, color: Colors.grey.shade100),
+          Expanded(child: _buildStatItem("VALUE", "\$${(state.currentKm * 0.73).toStringAsFixed(2)}", "CAD", Icons.attach_money_rounded, AppColours.successGreen)),
+        ],
       ),
     );
   }
 
-  Widget _buildStatItem(String label, String value) {
+  Widget _buildStatItem(String label, String value, String unit, IconData icon, Color color) {
     return Column(
       children: [
-        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 14, color: color),
+            const Gap(4),
+            Text(label, style: GoogleFonts.inter(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+          ],
+        ),
+        const Gap(4),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Text(value, style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 18, color: AppColours.charcoal)),
+            if (unit.isNotEmpty) ...[
+              const Gap(2),
+              Text(unit, style: GoogleFonts.inter(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
+            ],
+          ],
+        ),
       ],
     );
   }
 
   String _formatDuration(Duration d) {
     String twoDigits(int n) => n.toString().padLeft(2, "0");
-    return "${twoDigits(d.inHours)}:${twoDigits(d.inMinutes.remainder(60))}:${twoDigits(d.inSeconds.remainder(60))}";
+    if (d.inHours > 0) {
+      return "${d.inHours}:${twoDigits(d.inMinutes.remainder(60))}:${twoDigits(d.inSeconds.remainder(60))}";
+    }
+    return "${twoDigits(d.inMinutes.remainder(60))}:${twoDigits(d.inSeconds.remainder(60))}";
   }
 
   Widget _buildTripReviewSheet(StateSetter setSheetState) {
@@ -362,52 +491,70 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
       ),
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(2)))),
+          const Gap(24),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text("Review Trip", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-              IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
+              Text("Trip Summary", style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.bold)),
+              IconButton(
+                onPressed: () => Navigator.pop(context), 
+                icon: const Icon(Icons.close_rounded),
+                style: IconButton.styleFrom(backgroundColor: AppColours.lightGrey),
+              ),
             ],
           ),
-          const Divider(),
-          const SizedBox(height: 10),
+          const Gap(16),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(color: AppColours.lightGrey, borderRadius: BorderRadius.circular(16)),
+            child: Row(
+              children: [
+                const Icon(Icons.directions_car_rounded, color: AppColours.canadianRed),
+                const Gap(12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(tripState.selectedVehicle?.nickname ?? "Unknown Vehicle", style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+                      Text("${tripState.selectedVehicle?.make} ${tripState.selectedVehicle?.model}", style: GoogleFonts.inter(fontSize: 12, color: Colors.grey[600])),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Gap(24),
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              const Icon(Icons.directions_car, color: Colors.grey),
-              const SizedBox(width: 8),
-              Text(tripState.selectedVehicle?.nickname ?? "Unknown Vehicle", style: const TextStyle(fontWeight: FontWeight.w500)),
+              _buildReviewStat("DISTANCE", "${tripState.currentKm.toStringAsFixed(2)} km"),
+              _buildReviewStat("DURATION", _formatDuration(tripState.elapsed)),
+              _buildReviewStat("DEDUCTION", "\$${(tripState.currentKm * 0.73).toStringAsFixed(2)}"),
             ],
           ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildReviewStat("Distance", "${tripState.currentKm.toStringAsFixed(2)} km"),
-              _buildReviewStat("Duration", _formatDuration(tripState.elapsed)),
-              _buildReviewStat("Deduction", "\$${(tripState.currentKm * 0.70).toStringAsFixed(2)}"),
-            ],
-          ),
-          const SizedBox(height: 24),
+          const Gap(24),
           TextField(
             controller: _purposeController,
             focusNode: _purposeFocus,
             spellCheckConfiguration: const SpellCheckConfiguration.disabled(),
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: "Trip Purpose",
-              hintText: "e.g. Client visit",
-              border: OutlineInputBorder(),
+              hintText: "e.g. Client visit at downtown",
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+              prefixIcon: const Icon(Icons.edit_rounded, color: AppColours.canadianRed),
             ),
           ),
-          const SizedBox(height: 16),
-          const Text("Category", style: TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
+          const Gap(20),
+          Text("Category", style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14)),
+          const Gap(12),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -421,12 +568,18 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                     onSelected: (val) {
                       if (val) setSheetState(() => _selectedCategory = cat);
                     },
+                    selectedColor: AppColours.canadianRed.withOpacity(0.1),
+                    labelStyle: GoogleFonts.inter(
+                      color: isSelected ? AppColours.canadianRed : Colors.grey[600],
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal
+                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 );
               }).toList(),
             ),
           ),
-          const SizedBox(height: 32),
+          const Gap(32),
           Row(
             children: [
               Expanded(
@@ -435,21 +588,32 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                     ref.read(tripProvider.notifier).resetTrip();
                     Navigator.pop(context);
                   },
-                  style: OutlinedButton.styleFrom(padding: const EdgeInsets.all(16), foregroundColor: Colors.red),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    foregroundColor: Colors.red,
+                    side: const BorderSide(color: Colors.red),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
                   child: const Text("DISCARD"),
                 ),
               ),
-              const SizedBox(width: 16),
+              const Gap(16),
               Expanded(
                 child: ElevatedButton(
                   onPressed: _saveTripToIsar,
-                  style: ElevatedButton.styleFrom(padding: const EdgeInsets.all(16), backgroundColor: Colors.green),
-                  child: const Text("SAVE TRIP", style: TextStyle(color: Colors.white)),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    backgroundColor: AppColours.successGreen,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    elevation: 0,
+                  ),
+                  child: const Text("SAVE TRIP", style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const Gap(16),
         ],
       ),
     );
@@ -457,10 +621,10 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
 
   Widget _buildReviewStat(String label, String value) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        Text(label, style: GoogleFonts.inter(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+        const Gap(4),
+        Text(value, style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16, color: AppColours.charcoal)),
       ],
     );
   }

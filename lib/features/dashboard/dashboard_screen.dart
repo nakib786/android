@@ -10,6 +10,7 @@ import '../tracking/tracking_screen.dart';
 import '../trips/trip_history_screen.dart';
 import '../reports/reports_screen.dart';
 import '../settings/settings_screen.dart';
+import '../trips/edit_trip_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -21,16 +22,22 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 0;
 
-  final List<Widget> _screens = [
-    const DashboardHome(),
-    const TripHistoryScreen(),
-    const TrackingScreen(),
-    const ReportsScreen(),
-    const SettingsScreen(),
-  ];
+  void _onDestinationSelected(int index) {
+    setState(() => _selectedIndex = index);
+  }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    final List<Widget> _screens = [
+      DashboardHome(onViewAllTrips: () => _onDestinationSelected(1)),
+      const TripHistoryScreen(),
+      const TrackingScreen(),
+      const ReportsScreen(),
+      const SettingsScreen(),
+    ];
+
     return Scaffold(
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 300),
@@ -40,7 +47,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         decoration: BoxDecoration(
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withOpacity(isDark ? 0.3 : 0.1),
               blurRadius: 20,
               offset: const Offset(0, -5),
             ),
@@ -48,36 +55,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
         child: NavigationBar(
           selectedIndex: _selectedIndex,
-          onDestinationSelected: (index) {
-            setState(() => _selectedIndex = index);
-          },
-          backgroundColor: Colors.white,
+          onDestinationSelected: _onDestinationSelected,
+          backgroundColor: Theme.of(context).colorScheme.surface,
           indicatorColor: AppColours.canadianRed.withOpacity(0.1),
           labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
           height: 70,
           destinations: [
-            _buildNavDestination(Icons.grid_view_rounded, Icons.grid_view_outlined, "Home"),
-            _buildNavDestination(Icons.history_rounded, Icons.history_outlined, "Trips"),
-            _buildNavDestination(Icons.play_circle_fill_rounded, Icons.play_circle_outline_rounded, "Track"),
-            _buildNavDestination(Icons.analytics_rounded, Icons.analytics_outlined, "Reports"),
-            _buildNavDestination(Icons.settings_rounded, Icons.settings_outlined, "Settings"),
+            _buildNavDestination(context, Icons.grid_view_rounded, Icons.grid_view_outlined, "Home"),
+            _buildNavDestination(context, Icons.history_rounded, Icons.history_outlined, "Trips"),
+            _buildNavDestination(context, Icons.play_circle_fill_rounded, Icons.play_circle_outline_rounded, "Track"),
+            _buildNavDestination(context, Icons.analytics_rounded, Icons.analytics_outlined, "Reports"),
+            _buildNavDestination(context, Icons.settings_rounded, Icons.settings_outlined, "Settings"),
           ],
         ),
       ),
     );
   }
 
-  NavigationDestination _buildNavDestination(IconData selectedIcon, IconData icon, String label) {
+  NavigationDestination _buildNavDestination(BuildContext context, IconData selectedIcon, IconData icon, String label) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return NavigationDestination(
       selectedIcon: Icon(selectedIcon, color: AppColours.canadianRed),
-      icon: Icon(icon, color: AppColours.charcoal.withOpacity(0.6)),
+      icon: Icon(icon, color: isDark ? Colors.white70 : AppColours.charcoal.withOpacity(0.6)),
       label: label,
     );
   }
 }
 
 class DashboardHome extends StatefulWidget {
-  const DashboardHome({super.key});
+  final VoidCallback onViewAllTrips;
+  const DashboardHome({super.key, required this.onViewAllTrips});
 
   @override
   State<DashboardHome> createState() => _DashboardHomeState();
@@ -155,27 +162,133 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
     }
   }
 
+  void _showCraRateDetails(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Row(
+          children: [
+            const Icon(Icons.info_rounded, color: AppColours.canadianRed),
+            const Gap(10),
+            Text("CRA Mileage Rates", style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildRateInfoRow("First 5,000 km", "\$0.73 per km", true),
+            const Gap(12),
+            _buildRateInfoRow("Over 5,000 km", "\$0.67 per km", false),
+            const Gap(16),
+            const Divider(),
+            const Gap(12),
+            Text(
+              "These rates are set by the Canada Revenue Agency for 2026 tax year reimbursement.",
+              style: GoogleFonts.inter(fontSize: 13, color: Colors.grey[600]),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("GOT IT", style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: AppColours.canadianRed)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRateInfoRow(String label, String rate, bool isHighlighted) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: GoogleFonts.inter(fontWeight: isHighlighted ? FontWeight.bold : FontWeight.normal)),
+        Text(rate, style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: isHighlighted ? AppColours.successGreen : null)),
+      ],
+    );
+  }
+
+  Future<void> _navigateToEditTrip(Trip trip) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditTripScreen(
+          trip: trip,
+          onSaved: _loadDashboardData,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    double kmProgress = _businessKmYear / 5000;
+    if (kmProgress > 1.0) kmProgress = 1.0;
+
     return Scaffold(
-      backgroundColor: AppColours.lightGrey,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.transparent,
         title: Text(
           "Dashboard",
           style: GoogleFonts.poppins(
-            color: AppColours.charcoal,
+            color: isDark ? Colors.white : AppColours.charcoal,
             fontWeight: FontWeight.bold,
             fontSize: 22,
           ),
         ),
         actions: [
+          // KM Progress in Header
+          GestureDetector(
+            onTap: () => _showCraRateDetails(context),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              margin: const EdgeInsets.symmetric(vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColours.successGreen.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColours.successGreen.withOpacity(0.2)),
+              ),
+              child: Row(
+                children: [
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      SizedBox(
+                        width: 18, height: 18,
+                        child: CircularProgressIndicator(
+                          value: kmProgress,
+                          strokeWidth: 2.5,
+                          backgroundColor: AppColours.successGreen.withOpacity(0.2),
+                          valueColor: const AlwaysStoppedAnimation<Color>(AppColours.successGreen),
+                        ),
+                      ),
+                      Icon(Icons.bolt_rounded, size: 10, color: AppColours.successGreen),
+                    ],
+                  ),
+                  const Gap(8),
+                  Text(
+                    "${_businessKmYear.toStringAsFixed(0)} km",
+                    style: GoogleFonts.poppins(
+                      color: AppColours.successGreen,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
           IconButton(
-            icon: const Icon(Icons.notifications_none_rounded, color: AppColours.charcoal),
+            icon: Icon(Icons.notifications_none_rounded, color: isDark ? Colors.white : AppColours.charcoal),
             onPressed: () {},
           ),
-          const Gap(8),
+          const Gap(4),
           Padding(
             padding: const EdgeInsets.only(right: 16.0),
             child: GestureDetector(
@@ -202,22 +315,16 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildTopBanner(context),
-                      const Gap(24),
-                      _buildSectionTitle("Summary"),
-                      const Gap(16),
-                      _buildSummaryGrid(),
-                      const Gap(24),
-                      _buildProgressSection(),
+                      _buildSummaryGrid(context),
                       const Gap(24),
                       _buildQuickActions(context),
                       const Gap(32),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          _buildSectionTitle("Recent Trips"),
+                          _buildSectionTitle(context, "Recent Trips"),
                           TextButton(
-                            onPressed: () {},
+                            onPressed: widget.onViewAllTrips,
                             child: Text(
                               "View All",
                               style: GoogleFonts.inter(
@@ -229,7 +336,7 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
                         ],
                       ),
                       const Gap(8),
-                      _buildRecentTripsList(),
+                      _buildRecentTripsList(context),
                       const Gap(40),
                     ],
                   ),
@@ -239,103 +346,19 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _buildSectionTitle(BuildContext context, String title) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Text(
       title,
       style: GoogleFonts.poppins(
         fontSize: 18,
         fontWeight: FontWeight.bold,
-        color: AppColours.charcoal,
+        color: isDark ? Colors.white : AppColours.charcoal,
       ),
     );
   }
 
-  Widget _buildTopBanner(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppColours.canadianRed, AppColours.canadianRed.withOpacity(0.8)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: AppColours.canadianRed.withOpacity(0.3),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            right: -20,
-            bottom: -20,
-            child: Icon(
-              Icons.stars_rounded,
-              size: 100,
-              color: Colors.white.withOpacity(0.1),
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.info_outline_rounded, color: Colors.white, size: 20),
-                  const Gap(8),
-                  Text(
-                    "2026 CRA Rate",
-                    style: GoogleFonts.inter(
-                      color: Colors.white.withOpacity(0.9),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-              const Gap(12),
-              Text(
-                "\$0.73/km",
-                style: GoogleFonts.poppins(
-                  color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                "For the first 5,000 km",
-                style: GoogleFonts.inter(
-                  color: Colors.white.withOpacity(0.9),
-                  fontSize: 14,
-                ),
-              ),
-              const Gap(8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  "Next: \$0.67/km",
-                  style: GoogleFonts.inter(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSummaryGrid() {
+  Widget _buildSummaryGrid(BuildContext context) {
     return GridView.count(
       crossAxisCount: 2,
       crossAxisSpacing: 16,
@@ -344,23 +367,26 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
       childAspectRatio: 1.1,
       physics: const NeverScrollableScrollPhysics(),
       children: [
-        _buildSummaryCard("Total km", _totalKmMonth.toStringAsFixed(1), "This month", Icons.directions_car_rounded, Colors.blue),
-        _buildSummaryCard("Business km", _businessKmYear.toStringAsFixed(1), "This year", Icons.business_center_rounded, Colors.orange),
-        _buildSummaryCard("CRA Deduction", "\$${_totalDeduction.toStringAsFixed(2)}", "Estimated", Icons.account_balance_wallet_rounded, Colors.green),
-        _buildSummaryCard("Business Use", "${_businessUsePercent.toStringAsFixed(0)}%", "Compliance", Icons.pie_chart_rounded, Colors.purple),
+        _buildSummaryCard(context, "Total km", _totalKmMonth.toStringAsFixed(1), "This month", Icons.directions_car_rounded, Colors.blue),
+        _buildSummaryCard(context, "Business km", _businessKmYear.toStringAsFixed(1), "This year", Icons.business_center_rounded, Colors.orange),
+        _buildSummaryCard(context, "CRA Deduction", "\$${_totalDeduction.toStringAsFixed(2)}", "Estimated", Icons.account_balance_wallet_rounded, AppColours.successGreen),
+        _buildSummaryCard(context, "Business Use", "${_businessUsePercent.toStringAsFixed(0)}%", "Compliance", Icons.pie_chart_rounded, Colors.purple),
       ],
     );
   }
 
-  Widget _buildSummaryCard(String title, String value, String subtitle, IconData icon, Color color) {
+  Widget _buildSummaryCard(BuildContext context, String title, String value, String subtitle, IconData icon, Color color) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -383,7 +409,7 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
             style: GoogleFonts.poppins(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: AppColours.charcoal,
+              color: isDark ? Colors.white : AppColours.charcoal,
             ),
           ),
           const Gap(2),
@@ -391,7 +417,7 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
             title,
             style: GoogleFonts.inter(
               fontSize: 13,
-              color: AppColours.charcoal.withOpacity(0.7),
+              color: isDark ? Colors.white70 : AppColours.charcoal.withOpacity(0.7),
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -399,70 +425,7 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
             subtitle,
             style: GoogleFonts.inter(
               fontSize: 11,
-              color: Colors.grey,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProgressSection() {
-    double progress = _businessKmYear / 5000;
-    if (progress > 1.0) progress = 1.0;
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                "Deduction Tier Progress",
-                style: GoogleFonts.inter(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                  color: AppColours.charcoal,
-                ),
-              ),
-              Text(
-                "${(progress * 100).toStringAsFixed(0)}%",
-                style: GoogleFonts.inter(
-                  fontWeight: FontWeight.bold,
-                  color: AppColours.successGreen,
-                ),
-              ),
-            ],
-          ),
-          const Gap(12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: LinearProgressIndicator(
-              value: progress,
-              backgroundColor: AppColours.lightGrey,
-              valueColor: const AlwaysStoppedAnimation<Color>(AppColours.successGreen),
-              minHeight: 10,
-            ),
-          ),
-          const Gap(12),
-          Text(
-            "${_businessKmYear.toStringAsFixed(0)} km logged of 5,000 km tier",
-            style: GoogleFonts.inter(
-              fontSize: 13,
-              color: Colors.grey[600],
+              color: isDark ? Colors.white38 : Colors.grey,
             ),
           ),
         ],
@@ -508,22 +471,25 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
     );
   }
 
-  Widget _buildRecentTripsList() {
+  Widget _buildRecentTripsList(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
     if (_recentTrips.isEmpty) {
       return Container(
         width: double.infinity,
         padding: const EdgeInsets.all(32),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(24),
         ),
         child: Column(
           children: [
-            Icon(Icons.directions_car_outlined, size: 48, color: Colors.grey[300]),
+            Icon(Icons.directions_car_outlined, size: 48, color: isDark ? Colors.white12 : Colors.grey[300]),
             const Gap(16),
             Text(
               "No recent trips found.",
-              style: GoogleFonts.inter(color: Colors.grey, fontWeight: FontWeight.w500),
+              style: GoogleFonts.inter(color: isDark ? Colors.white38 : Colors.grey, fontWeight: FontWeight.w500),
             ),
           ],
         ),
@@ -543,78 +509,100 @@ class _DashboardHomeState extends State<DashboardHome> with SingleTickerProvider
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: theme.colorScheme.surface,
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.02),
+                color: Colors.black.withOpacity(isDark ? 0.2 : 0.02),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
             ],
           ),
-          child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            leading: Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: (isBusiness ? AppColours.canadianRed : Colors.grey).withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                isBusiness ? Icons.business_center_rounded : Icons.person_rounded,
-                color: isBusiness ? AppColours.canadianRed : Colors.grey,
-                size: 22,
-              ),
-            ),
-            title: Text(
-              trip.purpose.isEmpty ? "Untitled Trip" : trip.purpose,
-              style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 15),
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Gap(4),
-                Row(
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => _navigateToEditTrip(trip),
+              borderRadius: BorderRadius.circular(20),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(
                   children: [
-                    Text(
-                      "${dateFormat.format(trip.date)} • ${trip.distanceKm.toStringAsFixed(1)} km",
-                      style: GoogleFonts.inter(fontSize: 12, color: Colors.grey[600]),
-                    ),
-                    const Gap(8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: AppColours.lightGrey,
-                        borderRadius: BorderRadius.circular(4),
+                        color: (isBusiness ? AppColours.canadianRed : Colors.grey).withOpacity(0.1),
+                        shape: BoxShape.circle,
                       ),
-                      child: Text(
-                        trip.category,
-                        style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey[700]),
+                      child: Icon(
+                        isBusiness ? Icons.business_center_rounded : Icons.person_rounded,
+                        color: isBusiness ? AppColours.canadianRed : Colors.grey,
+                        size: 22,
                       ),
+                    ),
+                    const Gap(12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            trip.purpose.isEmpty ? "Untitled Trip" : trip.purpose,
+                            style: GoogleFonts.inter(
+                              fontWeight: FontWeight.bold, 
+                              fontSize: 15,
+                              color: isDark ? Colors.white : AppColours.charcoal,
+                            ),
+                          ),
+                          const Gap(4),
+                          Row(
+                            children: [
+                              Text(
+                                "${dateFormat.format(trip.date)} • ${trip.distanceKm.toStringAsFixed(1)} km",
+                                style: GoogleFonts.inter(fontSize: 12, color: isDark ? Colors.white54 : Colors.grey[600]),
+                              ),
+                              const Gap(8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: isDark ? Colors.white12 : AppColours.lightGrey,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  trip.category,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 10, 
+                                    fontWeight: FontWeight.bold, 
+                                    color: isDark ? Colors.white70 : Colors.grey[700],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          "\$${trip.deductionCad.toStringAsFixed(2)}",
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.bold, 
+                            color: AppColours.successGreen,
+                            fontSize: 16,
+                          ),
+                        ),
+                        Icon(
+                          trip.isCraCompliant ? Icons.verified_rounded : Icons.error_outline_rounded,
+                          color: trip.isCraCompliant ? AppColours.successGreen : AppColours.amberWarning, 
+                          size: 16,
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
-            trailing: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  "\$${trip.deductionCad.toStringAsFixed(2)}",
-                  style: GoogleFonts.poppins(
-                    fontWeight: FontWeight.bold, 
-                    color: AppColours.successGreen,
-                    fontSize: 16,
-                  ),
-                ),
-                Icon(
-                  trip.isCraCompliant ? Icons.verified_rounded : Icons.error_outline_rounded,
-                  color: trip.isCraCompliant ? AppColours.successGreen : AppColours.amberWarning, 
-                  size: 16,
-                ),
-              ],
+              ),
             ),
           ),
         );
