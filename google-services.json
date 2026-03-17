@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "96097427866",
+    "project_id": "auroramilagetracker",
+    "storage_bucket": "auroramilagetracker.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:96097427866:android:f6178bb36b3bb8022f1a23",
+        "android_client_info": {
+          "package_name": "com.example.aurora"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAp4mf8SFGW4jT0CwnNsPDCO__cgbsHdRw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
